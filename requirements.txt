@@ -1,0 +1,8 @@
+# Generated with poetry export -f requirements.txt --output requirements.txt --without-hashes
+certifi==2024.2.2 ; python_version >= "3.11" and python_version < "4.0"
+charset-normalizer==3.3.2 ; python_version >= "3.11" and python_version < "4.0"
+click==8.1.7 ; python_version >= "3.11" and python_version < "4.0"
+colorama==0.4.6 ; python_version >= "3.11" and python_version < "4.0" and platform_system == "Windows"
+idna==3.7 ; python_version >= "3.11" and python_version < "4.0"
+requests==2.31.0 ; python_version >= "3.11" and python_version < "4.0"
+urllib3==2.2.1 ; python_version >= "3.11" and python_version < "4.0"

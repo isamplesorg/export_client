@@ -39,8 +39,8 @@
        with:
          path: .venv
          key: venv-${{ runner.os }}-#{{ hashFiles('**/poetry.lock') }}
-     - name: install pip
-       run: poetry run python -m pip install --upgrade pip
+     #- name: install pip
+     #  run: poetry run python -m pip install --upgrade pip
      - name: Install
        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
        run: poetry install --no-interaction
