@@ -179,13 +179,14 @@ class ExportClient:
             "stac_version": STAC_VERSION,
             "stac_extensions": [],
             "type": STAC_FEATURE_TYPE,
-            "id": uuid,
+            "id": f"iSamples Export Service result {uuid}",
             "collection": f"{COLLECTION_TITLE} {uuid}",
-            "geometry": geo_result.geo_json,
+            "geometry": geo_result.geo_json_dict,
             "bbox": geo_result.bbox,
             "properties": {
                 "datetime": datetime_to_solr_format(tstarted)
             },
+            "description": f"iSamples Export Service results intiated at {tstarted}",
             "links": [
                 {
                     "rel": "collection",
@@ -193,7 +194,9 @@ class ExportClient:
                     "type": "application/jsonl",
                     "title": f"{COLLECTION_TITLE} {uuid}",
                 }
-            ]
+            ],
+            "assets": {
+            }
         }
         stac_path = ExportClient._stac_file_path(self._destination_directory)
         with open(stac_path, "w") as f:
