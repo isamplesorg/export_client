@@ -3,7 +3,8 @@ import json
 import logging
 import time
 from enum import Enum
-import os, os.path
+import os
+import os.path
 from typing import Optional, Any
 
 import requests
