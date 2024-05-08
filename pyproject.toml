@@ -5,7 +5,9 @@ description = "An export client for the iSamples export service."
 authors = ["Danny Mandel <danny.mandel@gmail.com>"]
 license = "Apache 2.0"
 readme = "README.md"
-packages = []
+packages = [
+    { include = "isamples_export_client"},
+]
 
 [tool.poetry.dependencies]
 python = "^3.11"
