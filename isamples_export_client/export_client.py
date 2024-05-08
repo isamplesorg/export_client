@@ -15,9 +15,6 @@ import geopandas as gpd
 from isamples_export_client.duckdb_utilities import GeoFeaturesResult, read_geo_features_from_jsonl
 
 GEOPARQUET = "geoparquet"
-
-from isamples_export_client.duckdb_utilities import GeoFeaturesResult, read_geo_features_from_jsonl
-
 START_TIME = "start_time"
 EXPORT_SERVER_URL = "export_server_url"
 FORMAT = "format"
@@ -60,7 +57,6 @@ def write_geoparquet_from_json_lines(filename):
             crs="EPSG:4326"
         )
     gdf.to_parquet(f"{filename}_geo.parquet")
-
 
 
 class ExportJobStatus(Enum):
@@ -188,7 +184,7 @@ class ExportClient:
             FORMAT: self._format,
             START_TIME: datetime_to_solr_format(tstarted),
             "num_results": num_results,
-            EXPORT_SERVER_URL: self._export_server_url
+            EXPORT_SERVER_URL: self._export_server_url,
             IS_GEOPARQUET: self.is_geoparquet
         }
         if self._refresh_date is not None:
@@ -267,7 +263,3 @@ class ExportClient:
                 logging.error("An error occurred:", e)
                 # Sleep for a short time before retrying after an error
                 time.sleep(self._sleep_time)
-
-
-if __name__ == "__main__":
-    write_geoparquet_from_json_lines("/tmp/isamples_export_2024_05_08_08_57_12.jsonl")
