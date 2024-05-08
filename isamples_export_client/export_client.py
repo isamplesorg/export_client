@@ -11,6 +11,7 @@ import requests
 from requests import Session, Response
 
 from isamples_export_client.duckdb_utilities import GeoFeaturesResult, read_geo_features_from_jsonl
+from isamples_export_client.geoparquet_utilities import write_geoparquet_from_json_lines
 
 GEOPARQUET = "geoparquet"
 START_TIME = "start_time"
