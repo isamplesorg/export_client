@@ -16,6 +16,8 @@ from isamples_export_client.duckdb_utilities import GeoFeaturesResult, read_geo_
 
 GEOPARQUET = "geoparquet"
 
+from isamples_export_client.duckdb_utilities import GeoFeaturesResult, read_geo_features_from_jsonl
+
 START_TIME = "start_time"
 EXPORT_SERVER_URL = "export_server_url"
 FORMAT = "format"
