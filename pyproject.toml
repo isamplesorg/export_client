@@ -12,6 +12,10 @@ python = "^3.11"
 click = "^8.1.7"
 requests = "^2.31.0"
 duckdb = "^0.10.2"
+pandas = "^2.2.2"
+geopandas = "^0.14.4"
+geoarrow-pyarrow = "^0.1.2"
+geoarrow-pandas = "^0.1.1"
 
 [tool.poetry.group.dev.dependencies]
 flake8 = "^6.1.0"

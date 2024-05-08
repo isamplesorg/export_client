@@ -9,16 +9,18 @@ from typing import Optional, Any
 
 import requests
 from requests import Session, Response
+import pandas as pd
+import geopandas as gpd
 
 from isamples_export_client.duckdb_utilities import GeoFeaturesResult, read_geo_features_from_jsonl
 
+GEOPARQUET = "geoparquet"
+
 START_TIME = "start_time"
-
 EXPORT_SERVER_URL = "export_server_url"
-
 FORMAT = "format"
-
 QUERY = "query"
+IS_GEOPARQUET = "is_geoparquet"
 
 SOLR_INDEX_UPDATED_TIME = "indexUpdatedTime"
 
@@ -40,6 +42,23 @@ def datetime_to_solr_format(dt):
     if dt is None:
         return None
     return dt.strftime(SOLR_TIME_FORMAT)
+
+
+def write_geoparquet_from_json_lines(filename):
+    logging.info(f"Transforming json lines file at {filename} to geoparquet")
+    with open(filename, "r") as json_file:
+        df = pd.read_json(json_file, lines=True)
+        normalized_produced_by = pd.json_normalize(df["produced_by"])
+        df["sample_location_longitude"] = normalized_produced_by["sampling_site.sample_location.longitude"]
+        df["sample_location_latitude"] = normalized_produced_by["sampling_site.sample_location.latitude"]
+        gdf = gpd.GeoDataFrame(
+            df, geometry=gpd.points_from_xy(
+                df.sample_location_longitude,
+                df.sample_location_latitude),
+            crs="EPSG:4326"
+        )
+    gdf.to_parquet(f"{filename}_geo.parquet")
+
 
 
 class ExportJobStatus(Enum):
@@ -75,7 +94,12 @@ class ExportClient:
         if not export_server_url.endswith("/"):
             export_server_url = f"{export_server_url}/"
         self._export_server_url = export_server_url
-        self._format = format
+        if format == "geoparquet":
+            self._format = "jsonl"
+            self.is_geoparquet = True
+        else:
+            self._format = format
+            self.is_geoparquet = False
         self._refresh_date = refresh_date
         self._rsession = session
         self._sleep_time = sleep_time
@@ -95,6 +119,9 @@ class ExportClient:
             query = last_manifest_dict[QUERY]
             export_server_url = last_manifest_dict[EXPORT_SERVER_URL]
             format = last_manifest_dict[FORMAT]
+            is_geoparquet = last_manifest_dict[IS_GEOPARQUET]
+            if is_geoparquet:
+                format = GEOPARQUET
             refresh_date = last_manifest_dict[START_TIME]
             return ExportClient(query, refresh_dir, jwt, export_server_url, format, refresh_date)
 
@@ -160,6 +187,7 @@ class ExportClient:
             START_TIME: datetime_to_solr_format(tstarted),
             "num_results": num_results,
             EXPORT_SERVER_URL: self._export_server_url
+            IS_GEOPARQUET: self.is_geoparquet
         }
         if self._refresh_date is not None:
             # if we are refreshing, include the additional timestamp filter for verbosity's sake
@@ -230,8 +258,14 @@ class ExportClient:
                     geo_result = read_geo_features_from_jsonl(filename)
                     stac_path = self.write_stac(uuid, tstarted, geo_result, filename)
                     logging.info(f"Successfully wrote stac item to {stac_path}")
+                    if self.is_geoparquet:
+                        write_geoparquet_from_json_lines(filename)
                     break
             except Exception as e:
                 logging.error("An error occurred:", e)
                 # Sleep for a short time before retrying after an error
                 time.sleep(self._sleep_time)
+
+
+if __name__ == "__main__":
+    write_geoparquet_from_json_lines("/tmp/isamples_export_2024_05_08_08_57_12.jsonl")
