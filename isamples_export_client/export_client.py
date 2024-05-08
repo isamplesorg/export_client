@@ -9,8 +9,6 @@ from typing import Optional, Any
 
 import requests
 from requests import Session, Response
-import pandas as pd
-import geopandas as gpd
 
 from isamples_export_client.duckdb_utilities import GeoFeaturesResult, read_geo_features_from_jsonl
 
@@ -41,22 +39,6 @@ def datetime_to_solr_format(dt):
     if dt is None:
         return None
     return dt.strftime(SOLR_TIME_FORMAT)
-
-
-def write_geoparquet_from_json_lines(filename):
-    logging.info(f"Transforming json lines file at {filename} to geoparquet")
-    with open(filename, "r") as json_file:
-        df = pd.read_json(json_file, lines=True)
-        normalized_produced_by = pd.json_normalize(df["produced_by"])
-        df["sample_location_longitude"] = normalized_produced_by["sampling_site.sample_location.longitude"]
-        df["sample_location_latitude"] = normalized_produced_by["sampling_site.sample_location.latitude"]
-        gdf = gpd.GeoDataFrame(
-            df, geometry=gpd.points_from_xy(
-                df.sample_location_longitude,
-                df.sample_location_latitude),
-            crs="EPSG:4326"
-        )
-    gdf.to_parquet(f"{filename}_geo.parquet")
 
 
 class ExportJobStatus(Enum):

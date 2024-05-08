@@ -1,0 +1,8 @@
+import os
+
+from isamples_export_client.geoparquet_utilities import write_geoparquet_from_json_lines
+
+
+def test_geoparquet():
+    dest_file = write_geoparquet_from_json_lines("./test_data/isamples_export_2024_05_08_08_57_12.jsonl")
+    assert os.path.exists(dest_file)
