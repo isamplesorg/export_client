@@ -4,10 +4,13 @@ import logging
 import time
 from enum import Enum
 import os
+import os.path
 from typing import Optional, Any
 
 import requests
 from requests import Session, Response
+
+from isamples_export_client.duckdb_utilities import GeoFeaturesResult, read_geo_features_from_jsonl
 
 START_TIME = "start_time"
 
@@ -20,6 +23,17 @@ QUERY = "query"
 SOLR_INDEX_UPDATED_TIME = "indexUpdatedTime"
 
 SOLR_TIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
+
+STAC_FEATURE_TYPE = "Feature"
+STAC_COLLECTION_TYPE = "Collection"
+STAC_VERSION = "1.0.0"
+COLLECTION_ID = "isamples-stac-collection-"
+COLLECTION_DESCRIPTION = """The Internet of Samples (iSamples) is a multi-disciplinary and multi-institutional
+project funded by the National Science Foundation to design, develop, and promote service infrastructure to uniquely,
+consistently, and conveniently identify material samples, record metadata about them, and persistently link them to
+other samples and derived digital content, including images, data, and publications."""
+COLLECTION_TITLE = "iSamples Stac Collection"
+COLLECTION_LICENSE = "CC-BY-4.0"
 
 
 def datetime_to_solr_format(dt):
@@ -87,6 +101,10 @@ class ExportClient:
     @classmethod
     def _manifest_file_path(cls, dir_path: str):
         return os.path.join(dir_path, "manifest.json")
+
+    @classmethod
+    def _stac_file_path(cls, dir_path: str):
+        return os.path.join(dir_path, "stac-item.json")
 
     def _authentication_headers(self) -> dict:
         return {
@@ -157,6 +175,35 @@ class ExportClient:
             f.write(json.dumps(manifests, indent=4))
         return manifest_path
 
+    def write_stac(self, uuid: str, tstarted: datetime.datetime, geo_result: GeoFeaturesResult, json_file_path: str) -> str:
+        stac_item = {
+            "stac_version": STAC_VERSION,
+            "stac_extensions": [],
+            "type": STAC_FEATURE_TYPE,
+            "id": f"iSamples Export Service result {uuid}",
+            "collection": f"{COLLECTION_TITLE} {uuid}",
+            "geometry": geo_result.geo_json_dict,
+            "bbox": geo_result.bbox,
+            "properties": {
+                "datetime": datetime_to_solr_format(tstarted)
+            },
+            "description": f"iSamples Export Service results intiated at {tstarted}",
+            "links": [
+                {
+                    "rel": "collection",
+                    "href": f"./{os.path.basename(json_file_path)}",
+                    "type": "application/jsonl",
+                    "title": f"{COLLECTION_TITLE} {uuid}",
+                }
+            ],
+            "assets": {
+            }
+        }
+        stac_path = ExportClient._stac_file_path(self._destination_directory)
+        with open(stac_path, "w") as f:
+            f.write(json.dumps(stac_item, indent=4))
+        return stac_path
+
     def perform_full_download(self):
         logging.info("Contacting the export service to start the export process")
         tstarted = datetime.datetime.now()
@@ -180,6 +227,9 @@ class ExportClient:
                     num_results = sum(1 for _ in open(filename))
                     manifest_path = self.write_manifest(self._query, uuid, tstarted, num_results)
                     logging.info(f"Successfully wrote manifest file to {manifest_path}")
+                    geo_result = read_geo_features_from_jsonl(filename)
+                    stac_path = self.write_stac(uuid, tstarted, geo_result, filename)
+                    logging.info(f"Successfully wrote stac item to {stac_path}")
                     break
             except Exception as e:
                 logging.error("An error occurred:", e)
