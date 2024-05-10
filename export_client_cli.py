@@ -34,7 +34,7 @@ from isamples_export_client.export_client import ExportClient
     "-f",
     "--format",
     help="The format of the exported content.",
-    type=click.Choice(["jsonl", "csv"], case_sensitive=False),
+    type=click.Choice(["jsonl", "csv", "geoparquet"], case_sensitive=False),
     default="jsonl"
 )
 def main(query: str, destination: str, refresh_dir: str, jwt: str, url: str, format: str):

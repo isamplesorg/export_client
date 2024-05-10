@@ -19,7 +19,8 @@ def read_geo_features_from_jsonl(filename: str) -> Optional[GeoFeaturesResult]:
     con.install_extension("spatial")
     con.load_extension("spatial")
     con.read_json(filename, format="newline_delimited")
-    q = f"select ST_Extent(envelope)as bb, ST_AsGEOJSON(envelope) as poly from (select ST_Envelope_Agg(ST_Point(produced_by.sampling_site.longitude, produced_by.sampling_site.latitude)) as envelope from '{filename}' where produced_by.sampling_site.longitude is not null)"
+    location_prefix = "produced_by.sampling_site.sample_location."
+    q = f"select ST_Extent(envelope)as bb, ST_AsGEOJSON(envelope) as poly from (select ST_Envelope_Agg(ST_Point({location_prefix}longitude, {location_prefix}latitude)) as envelope from '{filename}' where {location_prefix}longitude is not null)"
     spatial_results = con.sql(q).fetchone()
     if spatial_results is not None:
         return GeoFeaturesResult(spatial_results[0], spatial_results[1])
