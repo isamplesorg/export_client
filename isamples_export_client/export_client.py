@@ -24,7 +24,6 @@ SOLR_INDEX_UPDATED_TIME = "indexUpdatedTime"
 
 SOLR_TIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
 
-STAC_FEATURE_TYPE = "Feature"
 STAC_COLLECTION_TYPE = "Collection"
 STAC_VERSION = "1.0.0"
 COLLECTION_ID = "isamples-stac-collection-"
@@ -184,11 +183,25 @@ class ExportClient:
             f.write(json.dumps(manifests, indent=4))
         return manifest_path
 
-    def write_stac(self, uuid: str, tstarted: datetime.datetime, geo_result: GeoFeaturesResult, json_file_path: str) -> str:
+    def write_stac(self, uuid: str, tstarted: datetime.datetime, geo_result: GeoFeaturesResult, json_file_path: str, parquet_file_path: str) -> str:
+        assets_dict = {
+        }
+        if self.is_geoparquet:
+            assets_dict["data"] = {
+                "href": f"./{os.path.basename(parquet_file_path)}",
+                "type": "application/x-parquet",
+                "title": f"{COLLECTION_TITLE} {uuid} parquet export",
+                "roles": [
+                    "data"
+                ],
+                "description": "GeoParquet representation of the collection."
+            }
         stac_item = {
             "stac_version": STAC_VERSION,
-            "stac_extensions": [],
-            "type": STAC_FEATURE_TYPE,
+            "stac_extensions": [
+                "https://stac-extensions.github.io/table/v1.2.0/schema.json"
+            ],
+            "type": STAC_COLLECTION_TYPE,
             "id": f"iSamples Export Service result {uuid}",
             "collection": f"{COLLECTION_TITLE} {uuid}",
             "geometry": geo_result.geo_json_dict,
@@ -199,14 +212,91 @@ class ExportClient:
             "description": f"iSamples Export Service results intiated at {tstarted}",
             "links": [
                 {
-                    "rel": "collection",
+                    "rel": "self",
                     "href": f"./{os.path.basename(json_file_path)}",
                     "type": "application/jsonl",
                     "title": f"{COLLECTION_TITLE} {uuid}",
                 }
             ],
-            "assets": {
-            }
+            # Columns adapted from https://raw.githubusercontent.com/isamplesorg/metadata/main/src/schemas/iSamplesSchemaCore1.0.json
+            "table:columns": [
+                {
+                    "name": "sample_identifier",
+                    "description": "URI that identifies the physical sample described by this record",
+                    "type": "string"
+                },
+                {
+                    "name": "label",
+                    "description": "a human intelligible string used to identify a thing, i.e. the name to use for the thing; should be unique in the scope of a sample collection or dataset.",
+                    "type": "string"
+                },
+                {
+                    "name": "description",
+                    "description": "Free text description of the subject of a triple.",
+                    "type": "string"
+                },
+                {
+                    "name": "alternate_identifiers",
+                    "description": "one or more identifiers used to identify the sample in other contexts. In this context, the identifier property and scheme_name should be required.",
+                    "type": "array"
+                },
+                {
+                    "name": "produced_by",
+                    "description": "object that documents the sampling event--who, where, when the specimen was obtained",
+                    "type": "string"
+                },
+                {
+                    "name": "sampling_purpose",
+                    "description": "term to specify why a sample was collection.",
+                    "type": "string"
+                },
+                {
+                    "name": "has_context_category",
+                    "description": "Top level context, based on the kind of feature sampled. Specific identification of the sampled feature of interest is done through the SamplingEvent/Feature of Interest property. At least one value is an instance of skos:Concept from the iSamples sampledfeaturevocabulary.",
+                    "type": "array"
+                },
+                {
+                    "name": "has_material_category",
+                    "description": "The kind of material that constitutes the sample.  At least one value is an instance of skos:Concept from the iSamples MaterialTypeVocabulary; extension vocabularies can be used for more precise categorization.",
+                    "type": "array"
+                },
+                {
+                    "name": "has_specimen_category",
+                    "description": "The kind of object the specimen is. At least one value is an instance of skos:Concept from the iSamples SpecimenTypeVocabulary; extension vocabularies can be used for more precise categorization.",
+                    "type": "array"
+                },
+                {
+                    "name": "keywords",
+                    "description": "free text terms or formal categories associate with sample to support discovery. As in DataCite metadata, each keyword is a separate element. Multiple keywords should NOT be included as a comma-delimited list.",
+                    "type": "array"
+                },
+                {
+                    "name": "related_resource",
+                    "description": "link to related resource with relationship property to indicate nature of connection. Target should be identifier for a resource.",
+                    "type": "array"
+                },
+                {
+                    "name": "complies_with",
+                    "description": "a list of policies, recommendations, best practices (etc.) that have been followed in the collection and curation of the sample.",
+                    "type": "array"
+                },
+                {
+                    "name": "dc_rights",
+                    "description": "a statement about various property rights associated with the resource, including intellectual property rights. Recommended practice is to refer to a rights statement with a URI. If this is not possible or feasible, a literal value (name, label, or short text) may be provided.",
+                    "type": "string"
+                },
+                {
+                    "name": "curation",
+                    "description": "Information about the current storage of sample, access to sample, and events in curation history. Curation as used here starts when the sample is removed from its original context, and might include various processing steps for preservation.  Processing related to analysis preparation such as crushing, dissolution, evaporation, filtering are considered part of the sampling method for the derived child sample.",
+                    "type": "string"
+                },
+                {
+                    "name": "registrant",
+                    "description": "identification of the agent that registered the sample, with contact information. Should include person name and affiliation, or position name and affiliation, or just organization name. e-mail address is preferred contact information.",
+                    "type": "string"
+                }
+            ],
+            "assets": assets_dict
         }
         stac_path = ExportClient._stac_file_path(self._destination_directory)
         with open(stac_path, "w") as f:
@@ -237,10 +327,11 @@ class ExportClient:
                     manifest_path = self.write_manifest(self._query, uuid, tstarted, num_results)
                     logging.info(f"Successfully wrote manifest file to {manifest_path}")
                     geo_result = read_geo_features_from_jsonl(filename)
-                    stac_path = self.write_stac(uuid, tstarted, geo_result, filename)
-                    logging.info(f"Successfully wrote stac item to {stac_path}")
+                    parquet_filename = None
                     if self.is_geoparquet:
-                        write_geoparquet_from_json_lines(filename)
+                        parquet_filename = write_geoparquet_from_json_lines(filename)
+                    stac_path = self.write_stac(uuid, tstarted, geo_result, filename, parquet_filename)
+                    logging.info(f"Successfully wrote stac item to {stac_path}")
                     break
             except Exception as e:
                 logging.error("An error occurred:", e)
