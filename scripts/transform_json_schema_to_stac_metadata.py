@@ -14,7 +14,7 @@ def main(url: str):
     response = requests.get(url)
     jsonschema_content = response.json()
     properties = jsonschema_content.get("properties")
-    table_column_list = []
+    table_column_list: list[dict] = []
     table_columns = {"table:columns": table_column_list}
     # turn each item into something like this:
     #                 {
