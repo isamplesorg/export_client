@@ -2,6 +2,7 @@ import click
 import requests
 import json
 
+
 @click.command()
 @click.option(
     "-u",
