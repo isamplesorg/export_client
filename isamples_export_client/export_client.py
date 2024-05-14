@@ -183,9 +183,12 @@ class ExportClient:
             f.write(json.dumps(manifests, indent=4))
         return manifest_path
 
-    def write_stac(self, uuid: str, tstarted: datetime.datetime, geo_result: GeoFeaturesResult, json_file_path: str, parquet_file_path: str) -> str:
+    def write_stac(self, uuid: str, tstarted: datetime.datetime, geo_result: GeoFeaturesResult, solr_query: str, json_file_path: str, parquet_file_path: str) -> str:
         assets_dict = {
         }
+        description_string = f"""iSamples Export Service results intiated at {tstarted}.  The solr query that produced this collection was   
+        ```{solr_query}```.  
+        """
         if self.is_geoparquet:
             assets_dict["data"] = {
                 "href": f"./{os.path.basename(parquet_file_path)}",
@@ -209,7 +212,7 @@ class ExportClient:
             "properties": {
                 "datetime": datetime_to_solr_format(tstarted)
             },
-            "description": f"iSamples Export Service results intiated at {tstarted}",
+            "description": description_string,
             "links": [
                 {
                     "rel": "self",
@@ -310,10 +313,10 @@ class ExportClient:
         logging.info(f"Contacted the export service, created export job with uuid {uuid}")
         while True:
             try:
-                json = self.status(uuid)
-                status = ExportJobStatus.string_to_enum(json.get("status"))
+                status_json = self.status(uuid)
+                status = ExportJobStatus.string_to_enum(status_json.get("status"))
                 if status == ExportJobStatus.ERROR:
-                    logging.info(f"Export job failed with error.  Check that your solr query is valid and try again.  Response: {json}")
+                    logging.info(f"Export job failed with error.  Check that your solr query is valid and try again.  Response: {status_json}")
                     break
                 if status != ExportJobStatus.COMPLETED:
                     time.sleep(self._sleep_time)
@@ -330,7 +333,10 @@ class ExportClient:
                     parquet_filename = None
                     if self.is_geoparquet:
                         parquet_filename = write_geoparquet_from_json_lines(filename)
-                    stac_path = self.write_stac(uuid, tstarted, geo_result, filename, parquet_filename)
+                    query_string = status_json.get("query").replace("'", "\"")
+                    solr_query_dict = json.loads(query_string)
+                    query = solr_query_dict.pop("q")
+                    stac_path = self.write_stac(uuid, tstarted, geo_result, query, filename, parquet_filename)
                     logging.info(f"Successfully wrote stac item to {stac_path}")
                     break
             except Exception as e:
