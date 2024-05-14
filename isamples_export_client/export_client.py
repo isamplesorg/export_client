@@ -186,9 +186,10 @@ class ExportClient:
     def write_stac(self, uuid: str, tstarted: datetime.datetime, geo_result: GeoFeaturesResult, solr_query: str, json_file_path: str, parquet_file_path: str) -> str:
         assets_dict = {
         }
-        description_string = f"""iSamples Export Service results intiated at {tstarted}.  The solr query that produced this collection was   
-        ```{solr_query}```.  
-        """
+        description_string = (
+            f"iSamples Export Service results intiated at {tstarted}.  The solr query that produced this collection was  \n"
+            f"```{solr_query}```.  \n"
+        )
         if self.is_geoparquet:
             assets_dict["data"] = {
                 "href": f"./{os.path.basename(parquet_file_path)}",
