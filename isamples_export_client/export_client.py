@@ -68,6 +68,7 @@ class ExportClient:
                  refresh_date: Optional[str] = None,
                  session: Session = requests.session(),
                  sleep_time: float = 5):
+        self._max_errors = 3 # Max number of errors in retrieval loop
         self._query = query
         self._destination_directory = destination_directory
         self._jwt = jwt
@@ -313,6 +314,7 @@ class ExportClient:
         tstarted = datetime.datetime.now()
         uuid = self.create()
         logging.info(f"Contacted the export service, created export job with uuid {uuid}")
+        error_count = 0
         while True:
             try:
                 status_json = self.status(uuid)
@@ -345,3 +347,8 @@ class ExportClient:
                 logging.error("An error occurred:", e)
                 # Sleep for a short time before retrying after an error
                 time.sleep(self._sleep_time)
+                error_count += 1
+            if error_count > self._max_errors:
+                logging.error("Maximum number of errors exceeded (%s/%s).", error_count, self._max_errors)
+                break
+
