@@ -30,7 +30,7 @@ def read_geo_features_from_jsonl(filename: str) -> Optional[GeoFeaturesResult]:
         return None
 
 
-def get_temporal_extent_from_jsonl(filename: str) -> list[Optional[str], Optional[str]]:
+def get_temporal_extent_from_jsonl(filename: str) -> tuple[Optional[str], Optional[str]]:
     con = duckdb.connect()
     con.read_json(filename, format="newline_delimited")
     q = f"SET TimeZone='UTC'; CREATE TABLE samples AS SELECT * FROM read_json('{filename}', format='newline_delimited');"
@@ -39,4 +39,4 @@ def get_temporal_extent_from_jsonl(filename: str) -> list[Optional[str], Optiona
          "max(produced_by.result_time::TIMESTAMPTZ) as max_t "
          "from samples where produced_by.result_time is not null")
     result = con.sql(q).fetchone()
-    return [result[0], result[1]]
+    return (result[0], result[1])

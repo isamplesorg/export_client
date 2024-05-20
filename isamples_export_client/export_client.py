@@ -202,7 +202,7 @@ class ExportClient:
             uuid: str,
             tstarted: datetime.datetime,
             geo_result: GeoFeaturesResult,
-            temporal_result: list[Optional[str], Optional[str], ],
+            temporal_result: tuple[Optional[str], Optional[str], ],
             solr_query: str,
             json_file_path: str,
             parquet_file_path: str) -> str:
