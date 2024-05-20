@@ -1,6 +1,6 @@
 import datetime
 import json
-from typing import Optional, Tuple
+from typing import Optional
 
 import duckdb
 
@@ -13,6 +13,7 @@ class GeoFeaturesResult:
 
     def __repr__(self):
         return f"GeoFeaturesResult geo_json={self.geo_json}, bbox={self.bbox}"
+
 
 class TemporalExtent(tuple):
 
