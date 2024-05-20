@@ -12,6 +12,7 @@ from requests import Session, Response
 
 from isamples_export_client.duckdb_utilities import (
     GeoFeaturesResult,
+    TemporalExtent,
     read_geo_features_from_jsonl,
     get_temporal_extent_from_jsonl
 )
@@ -202,7 +203,7 @@ class ExportClient:
             uuid: str,
             tstarted: datetime.datetime,
             geo_result: GeoFeaturesResult,
-            temporal_result: tuple[Optional[str], Optional[str], ],
+            temporal_result: TemporalExtent,
             solr_query: str,
             json_file_path: str,
             parquet_file_path: str) -> str:

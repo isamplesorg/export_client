@@ -1,5 +1,6 @@
+import datetime
 import json
-from typing import Optional
+from typing import Optional, Tuple
 
 import duckdb
 
@@ -12,6 +13,11 @@ class GeoFeaturesResult:
 
     def __repr__(self):
         return f"GeoFeaturesResult geo_json={self.geo_json}, bbox={self.bbox}"
+
+class TemporalExtent(tuple):
+
+    def __new__(self, t0: Optional[datetime.datetime], t1: Optional[datetime.datetime]):
+        return tuple.__new__(TemporalExtent, (t0, t1))
 
 
 def read_geo_features_from_jsonl(filename: str) -> Optional[GeoFeaturesResult]:
@@ -30,7 +36,7 @@ def read_geo_features_from_jsonl(filename: str) -> Optional[GeoFeaturesResult]:
         return None
 
 
-def get_temporal_extent_from_jsonl(filename: str) -> tuple[Optional[str], Optional[str]]:
+def get_temporal_extent_from_jsonl(filename: str) -> TemporalExtent:
     con = duckdb.connect()
     con.read_json(filename, format="newline_delimited")
     q = f"SET TimeZone='UTC'; CREATE TABLE samples AS SELECT * FROM read_json('{filename}', format='newline_delimited');"
@@ -39,4 +45,6 @@ def get_temporal_extent_from_jsonl(filename: str) -> tuple[Optional[str], Option
          "max(produced_by.result_time::TIMESTAMPTZ) as max_t "
          "from samples where produced_by.result_time is not null")
     result = con.sql(q).fetchone()
-    return (result[0], result[1])
+    if result is not None:
+        return TemporalExtent(result[0], result[1])
+    return TemporalExtent(None, None)
