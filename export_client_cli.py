@@ -17,7 +17,8 @@ from isamples_export_client.export_client import ExportClient
 @click.option(
     "-r",
     "--refresh-dir",
-    help="If specified, will read the manifest.json out of an existing directory and re-execute the query to update results."
+    help=("If specified, will read the manifest.json out of an existing "
+          "directory and re-execute the query to update results.")
 )
 @click.option(
     "-t",

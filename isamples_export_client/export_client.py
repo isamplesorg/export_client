@@ -10,7 +10,11 @@ from typing import Optional, Any
 import requests
 from requests import Session, Response
 
-from isamples_export_client.duckdb_utilities import GeoFeaturesResult, read_geo_features_from_jsonl
+from isamples_export_client.duckdb_utilities import (
+    GeoFeaturesResult,
+    read_geo_features_from_jsonl,
+    get_temporal_extent_from_jsonl
+)
 from isamples_export_client.geoparquet_utilities import write_geoparquet_from_json_lines
 
 GEOPARQUET = "geoparquet"
@@ -26,6 +30,7 @@ SOLR_TIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
 
 STAC_COLLECTION_TYPE = "Collection"
 STAC_VERSION = "1.0.0"
+STAC_DEFAULT_LICENSE = "CC-BY-4.0"  # https://spdx.org/licenses/CC-BY-4.0.html
 COLLECTION_ID = "isamples-stac-collection-"
 COLLECTION_DESCRIPTION = """The Internet of Samples (iSamples) is a multi-disciplinary and multi-institutional
 project funded by the National Science Foundation to design, develop, and promote service infrastructure to uniquely,
@@ -39,6 +44,13 @@ def datetime_to_solr_format(dt):
     if dt is None:
         return None
     return dt.strftime(SOLR_TIME_FORMAT)
+
+
+class JsonDateTimeEncoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, datetime.datetime):
+            return o.isoformat(timespec="seconds")
+        return json.JSONEncoder.default(self, o)
 
 
 class ExportJobStatus(Enum):
@@ -183,7 +195,15 @@ class ExportClient:
             f.write(json.dumps(manifests, indent=4))
         return manifest_path
 
-    def write_stac(self, uuid: str, tstarted: datetime.datetime, geo_result: GeoFeaturesResult, solr_query: str, json_file_path: str, parquet_file_path: str) -> str:
+    def write_stac(
+            self,
+            uuid: str,
+            tstarted: datetime.datetime,
+            geo_result: GeoFeaturesResult,
+            temporal_result: list[Optional[str], Optional[str], ],
+            solr_query: str,
+            json_file_path: str,
+            parquet_file_path: str) -> str:
         assets_dict = {
         }
         description_string = (
@@ -208,8 +228,17 @@ class ExportClient:
             "type": STAC_COLLECTION_TYPE,
             "id": f"iSamples Export Service result {uuid}",
             "collection": f"{COLLECTION_TITLE} {uuid}",
-            "geometry": geo_result.geo_json_dict,
-            "bbox": geo_result.bbox,
+            "license": STAC_DEFAULT_LICENSE,
+            "extent": {
+                "spatial": {
+                    "bbox": [geo_result.bbox,]
+                },
+                "temporal": {
+                    "interval": [
+                        temporal_result
+                    ]
+                }
+            },
             "properties": {
                 "datetime": datetime_to_solr_format(tstarted)
             },
@@ -303,8 +332,8 @@ class ExportClient:
             "assets": assets_dict
         }
         stac_path = ExportClient._stac_file_path(self._destination_directory)
-        with open(stac_path, "w") as f:
-            f.write(json.dumps(stac_item, indent=4))
+        with open(stac_path, "w", encoding="UTF-8") as f:
+            json.dump(stac_item, f, indent=4, ensure_ascii=False, cls=JsonDateTimeEncoder)
         return stac_path
 
     def perform_full_download(self):
@@ -331,13 +360,14 @@ class ExportClient:
                     manifest_path = self.write_manifest(self._query, uuid, tstarted, num_results)
                     logging.info(f"Successfully wrote manifest file to {manifest_path}")
                     geo_result = read_geo_features_from_jsonl(filename)
+                    temporal_result = get_temporal_extent_from_jsonl(filename)
                     parquet_filename = None
                     if self.is_geoparquet:
                         parquet_filename = write_geoparquet_from_json_lines(filename)
                     query_string = status_json.get("query").replace("'", "\"")
                     solr_query_dict = json.loads(query_string)
                     query = solr_query_dict.pop("q")
-                    stac_path = self.write_stac(uuid, tstarted, geo_result, query, filename, parquet_filename)
+                    stac_path = self.write_stac(uuid, tstarted, geo_result, temporal_result, query, filename, parquet_filename)
                     logging.info(f"Successfully wrote stac item to {stac_path}")
                     break
             except Exception as e:
