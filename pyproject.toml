@@ -18,6 +18,7 @@ pandas = "^2.2.2"
 geopandas = "^0.14.4"
 geoarrow-pyarrow = "^0.1.2"
 geoarrow-pandas = "^0.1.1"
+stac-validator = "^3.3.2"
 
 [tool.poetry.group.dev.dependencies]
 flake8 = "^6.1.0"
