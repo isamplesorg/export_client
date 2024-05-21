@@ -1,0 +1,8 @@
+123c123
+<       const range2 = (name === "arquero" || name === "@uwdata/mosaic-core" || name === "@duckdb/duckdb-wasm") && depName === "apache-arrow" ? "latest" : name === "@uwdata/mosaic-core" && depName === "@duckdb/duckdb-wasm" ? "1.28.0" : pkg.dependencies?.[depName] ?? pkg.devDependencies?.[depName] ?? pkg.peerDependencies?.[depName] ?? void console.warn(yellow(`${depName} is an undeclared dependency of ${name}; resolving latest version`));
+---
+>       const range2 = (name === "arquero" || name === "@uwdata/mosaic-core" || name === "@duckdb/duckdb-wasm") && depName === "apache-arrow" ? "latest" : name === "@uwdata/mosaic-core" && depName === "@duckdb/duckdb-wasm" ? "1.28.1-dev195.0" : pkg.dependencies?.[depName] ?? pkg.devDependencies?.[depName] ?? pkg.peerDependencies?.[depName] ?? void console.warn(yellow(`${depName} is an undeclared dependency of ${name}; resolving latest version`));
+214c214
+<     range = name === "@duckdb/duckdb-wasm" ? "1.28.0" : void 0,
+---
+>     range = name === "@duckdb/duckdb-wasm" ? "1.28.1-dev195.0" : void 0,
