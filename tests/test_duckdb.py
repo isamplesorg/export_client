@@ -17,4 +17,3 @@ def test_duckdb_read_temporal_extent():
     assert len(temporal_extent) == 2
     assert temporal_extent[0] is not None
     assert temporal_extent[1] is not None
-

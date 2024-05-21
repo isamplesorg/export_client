@@ -1,6 +1,6 @@
 import datetime
 import uuid
-from datetime import tzinfo, timezone, timedelta
+from datetime import timezone, timedelta
 
 import pytest
 from stac_validator import stac_validator
@@ -22,7 +22,7 @@ def geo_features_result() -> GeoFeaturesResult:
 
 @pytest.fixture
 def temporal_extent() -> TemporalExtent:
-    tz_info = timezone(timedelta(hours = 0, minutes = 0))
+    tz_info = timezone(timedelta(hours=0, minutes=0))
     datetime_0 = datetime.datetime.now(tz_info)
     datetime_1 = datetime.datetime.now(tz_info)
     return TemporalExtent(datetime_0, datetime_1)
@@ -40,4 +40,3 @@ def test_stac(geo_features_result: GeoFeaturesResult, temporal_extent: TemporalE
     result = stac.run()
     print(stac.message)
     assert result is True
-
