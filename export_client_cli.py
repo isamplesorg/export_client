@@ -9,6 +9,7 @@ token_option = click.option(
     type=str,
     default=None,
     help="The JWT for the authenticated user.",
+    required=True
 )
 
 
@@ -28,11 +29,13 @@ def main():
     "-q",
     "--query",
     help="The solr query to execute.",
+    required=True
 )
 @click.option(
     "-d",
     "--destination",
     help="The destination directory where the downloaded content should be written.",
+    required=True
 )
 @click.option(
     "-f",
