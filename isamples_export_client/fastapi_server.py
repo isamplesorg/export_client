@@ -1,43 +1,16 @@
 import logging
-
-import fastapi
-import fastapi.staticfiles
-import uvicorn
-from starlette.datastructures import Headers
-from starlette.responses import FileResponse, Response
-from starlette.staticfiles import StaticFiles
-
-
-class StaticFilesWithHead(StaticFiles):
-    async def get_response(self, path: str, scope) -> Response:
-        if scope["method"] == "HEAD":
-            full_path, stat_result = self.lookup_path(path)
-            if stat_result is None:
-                return Response(status_code=404)
-            return FileResponse(full_path, stat_result=stat_result, method='HEAD')
-        elif scope["method"] == "GET":
-            request_headers = Headers(scope=scope)
-            print(f"headers are {request_headers}")
-        return await super().get_response(path, scope)
-
-app = fastapi.FastAPI()
-# app.mount(
-#     "/static",
-#     StaticFilesWithHead(directory="/Users/mandeld/iSamples/export_client/example/test"),
-#     name="static",
-# )
-
-# app.mount(
-#     "/static",
-#     StaticFiles(directory="/Users/mandeld/iSamples/export_client/example/test"),
-#     name="static",
-# )
-
 import os
 from typing import BinaryIO
 
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.responses import StreamingResponse
+import fastapi.staticfiles
+import uvicorn
+from starlette.responses import FileResponse, Response
+
+# Byte range request code adapted from https://github.com/tiangolo/fastapi/discussions/7718
+
+app = fastapi.FastAPI()
 
 
 def send_bytes_range_requests(
@@ -75,15 +48,13 @@ def _get_range_header(range_header: str, file_size: int) -> tuple[int, int]:
 
 def range_requests_response(
     request: Request, file_path: str, content_type: str
-):
+) -> Response:
     """Returns StreamingResponse using Range Requests of a given file"""
-
     stat_result = os.stat(file_path)
-    file_size = stat_result.st_size
     if request.method == "HEAD":
         return FileResponse(file_path, stat_result=stat_result)
 
-
+    file_size = stat_result.st_size
     range_header = request.headers.get("range")
 
     headers = {
@@ -107,7 +78,7 @@ def range_requests_response(
         headers["content-range"] = f"bytes {start}-{end}/{file_size}"
         status_code = status.HTTP_206_PARTIAL_CONTENT
 
-    print(f"request method is {request.method}, request url is {request.url} request headers are {request.headers}, response headers are {headers}")
+    logging.debug(f"request method is {request.method}, request url is {request.url} request headers are {request.headers}, response headers are {headers}")
     return StreamingResponse(
         send_bytes_range_requests(open(file_path, mode="rb"), start, end),
         headers=headers,
@@ -115,21 +86,28 @@ def range_requests_response(
     )
 
 
-app = FastAPI()
+class FastAPIServer:
+    def __init__(self, port: int, data_path: str, ui_path: str):
+        self.port = port
+        self.data_path = data_path
+        self.ui_path = ui_path
+        self.app = FastAPI()
+        self.setup_routes()
 
+    def setup_routes(self):
+        self.app.mount(
+            "/ui",
+            fastapi.staticfiles.StaticFiles(directory=self.ui_path),
+            name="ui",
+        )
 
-@app.get("/static{identifier:path}")
-@app.head("/static/{identifier:path}")
-def get_video(request: Request, identifier: str):
-    return range_requests_response(
-        request, file_path="/Users/mandeld/iSamples/export_client/example/test/isamples_export_geo.parquet", content_type="application/x-parquet"
-    )
+        @self.app.get("/data/{identifier:path}")
+        @self.app.head("/data/{identifier:path}")
+        def get_data(request: Request, identifier: str):
+            path = os.path.join(self.data_path, identifier)
+            return range_requests_response(
+                request, file_path=path, content_type="application/x-parquet"
+            )
 
-
-def main():
-    logging.info("****************** Starting Server *****************")
-    uvicorn.run("fastapi_test:app", host="0.0.0.0", port=8000, reload=True)
-
-
-if __name__ == "__main__":
-    main()
+    def run(self):
+        uvicorn.run(self.app, host="0.0.0.0", port=self.port)
