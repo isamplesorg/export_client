@@ -4,6 +4,7 @@ from typing import BinaryIO
 
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.responses import StreamingResponse
+import fastapi.middleware.cors
 import fastapi.staticfiles
 import uvicorn
 from starlette.responses import FileResponse, Response
@@ -92,6 +93,14 @@ class FastAPIServer:
         self.data_path = data_path
         self.ui_path = ui_path
         self.app = FastAPI()
+        self.app.add_middleware(
+            fastapi.middleware.cors.CORSMiddleware,
+            allow_origins=["*"],
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+            expose_headers=["*"]
+        )
         self.setup_routes()
 
     def setup_routes(self):
