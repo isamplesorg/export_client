@@ -157,6 +157,7 @@ class ExportClient:
         status_url = f"{self._export_server_url}status?uuid={uuid}"
         response = self._rsession.get(status_url, headers=self._authentication_headers())
         if _is_expected_response_code(response):
+            logging.info(response)
             return response.json()
         raise ValueError(f"Invalid response to export status: {response.json()}")
 
@@ -368,6 +369,7 @@ class ExportClient:
                     parquet_filename = None
                     if self.is_geoparquet:
                         parquet_filename = write_geoparquet_from_json_lines(filename)
+                    print(status_json)
                     query_string = status_json.get("query").replace("'", "\"")
                     solr_query_dict = json.loads(query_string)
                     query = solr_query_dict.pop("q")
