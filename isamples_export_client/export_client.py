@@ -5,6 +5,7 @@ import time
 from enum import Enum
 import os
 import os.path
+from pathlib import Path
 from typing import Optional, Any
 
 import requests
@@ -30,6 +31,7 @@ SOLR_INDEX_UPDATED_TIME = "indexUpdatedTime"
 SOLR_TIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
 
 STAC_COLLECTION_TYPE = "Collection"
+STAC_CATALOG_TYPE = "Catalog"
 STAC_VERSION = "1.0.0"
 STAC_DEFAULT_LICENSE = "CC-BY-4.0"  # https://spdx.org/licenses/CC-BY-4.0.html
 COLLECTION_ID = "isamples-stac-collection-"
@@ -124,8 +126,12 @@ class ExportClient:
         return os.path.join(dir_path, "manifest.json")
 
     @classmethod
-    def _stac_file_path(cls, dir_path: str):
+    def _stac_item_path(cls, dir_path: str):
         return os.path.join(dir_path, "stac-item.json")
+
+    @classmethod
+    def _stac_catalog_path(cls, dir_path: str):
+        return os.path.join(dir_path, "stac-catalog.json")
 
     def _authentication_headers(self) -> dict:
         return {
@@ -168,14 +174,19 @@ class ExportClient:
             r.raise_for_status()
             current_time = datetime.datetime.now()
             date_string = current_time.strftime("%Y_%m_%d_%H_%M_%S")
+            export_dir = os.path.join(self._destination_directory, date_string)
+            try:
+                os.makedirs(name=export_dir, exist_ok=True)
+            except OSError as e:
+                raise ValueError(f"Unable to create export directory at {export_dir}, error: {e}")
             filename = f"isamples_export_{date_string}.{self._format}"
-            local_filename = os.path.join(self._destination_directory, filename)
+            local_filename = os.path.join(export_dir, filename)
             with open(local_filename, "wb") as f:
                 for chunk in r.iter_content(chunk_size=8192):
                     f.write(chunk)
             return local_filename
 
-    def write_manifest(self, query: str, uuid: str, tstarted: datetime.datetime, num_results: int) -> str:
+    def write_manifest(self, query: str, uuid: str, tstarted: datetime.datetime, num_results: int, dir: str) -> str:
         new_manifest_dict = {
             QUERY: query,
             "uuid": uuid,
@@ -188,7 +199,7 @@ class ExportClient:
         if self._refresh_date is not None:
             # if we are refreshing, include the additional timestamp filter for verbosity's sake
             new_manifest_dict["query_with_timestamp"] = self._query_with_timestamp()
-        manifest_path = ExportClient._manifest_file_path(self._destination_directory)
+        manifest_path = ExportClient._manifest_file_path(dir)
         if os.path.exists(manifest_path):
             with open(manifest_path, "r") as file:
                 manifests = json.load(file)
@@ -199,7 +210,56 @@ class ExportClient:
             f.write(json.dumps(manifests, indent=4))
         return manifest_path
 
-    def write_stac(
+
+    def _gather_contained_stac_items(self, destination_directory: str) -> list[str]:
+        start_path = Path(destination_directory)
+        return list(start_path.rglob("stac-item.json"))
+
+    def write_stac_catalog(self):
+        stac_catalog_path = ExportClient._stac_catalog_path(self._destination_directory)
+        catalog_filename = os.path.basename(stac_catalog_path)
+        links = [
+            {
+                "rel": "self",
+                "type": "application/json",
+                "href": catalog_filename
+            },
+            {
+                "rel": "root",
+                "type": "application/json",
+                "href": catalog_filename
+            },
+        ]
+        stac_items = self._gather_contained_stac_items(self._destination_directory)
+        for item in stac_items:
+            relative_path = os.path.relpath(item, self._destination_directory)
+            dirname = os.path.basename(os.path.dirname(item))
+            stac_item_link = {
+                "rel": "child",
+                "type": "application/json",
+                "title": dirname,
+                "href": relative_path
+            }
+            links.append(stac_item_link)
+
+        stac_catalog = {
+            "type": STAC_CATALOG_TYPE,
+            # TODO: this needs to be a UUID for the whole catalog.  Where does that come from?
+            "id": "iSamples Catalog",
+            "title": "iSamples STAC Catalog",
+            "description": "STAC Catalog from iSamples Exports",
+            "stac_version": STAC_VERSION,
+            # TODO: what's this?
+            "conformsTo": "conformsTo",
+            "links": links
+        }
+
+        with open(stac_catalog_path, "w", encoding="UTF-8") as f:
+            json.dump(stac_catalog, f, indent=4, ensure_ascii=False, cls=JsonDateTimeEncoder)
+
+        return stac_catalog_path
+
+    def write_stac_item(
             self,
             uuid: str,
             tstarted: datetime.datetime,
@@ -335,7 +395,8 @@ class ExportClient:
             ],
             "assets": assets_dict
         }
-        stac_path = ExportClient._stac_file_path(self._destination_directory)
+        stac_directory = os.path.dirname(json_file_path)
+        stac_path = ExportClient._stac_item_path(stac_directory)
         with open(stac_path, "w", encoding="UTF-8") as f:
             json.dump(stac_item, f, indent=4, ensure_ascii=False, cls=JsonDateTimeEncoder)
         return stac_path
@@ -362,7 +423,8 @@ class ExportClient:
                     filename = self.download(uuid)
                     logging.info(f"Successfully downloaded file to {filename}")
                     num_results = sum(1 for _ in open(filename))
-                    manifest_path = self.write_manifest(self._query, uuid, tstarted, num_results)
+                    containing_directory = os.path.dirname(filename)
+                    manifest_path = self.write_manifest(self._query, uuid, tstarted, num_results, containing_directory)
                     logging.info(f"Successfully wrote manifest file to {manifest_path}")
                     geo_result = read_geo_features_from_jsonl(filename)
                     temporal_result = get_temporal_extent_from_jsonl(filename)
@@ -373,8 +435,10 @@ class ExportClient:
                     query_string = status_json.get("query").replace("'", "\"")
                     solr_query_dict = json.loads(query_string)
                     query = solr_query_dict.pop("q")
-                    stac_path = self.write_stac(uuid, tstarted, geo_result, temporal_result, query, filename, parquet_filename)
+                    stac_path = self.write_stac_item(uuid, tstarted, geo_result, temporal_result, query, filename, parquet_filename)
                     logging.info(f"Successfully wrote stac item to {stac_path}")
+                    stac_catalog = self.write_stac_catalog()
+                    logging.info(f"Successfully wrote stac catalog to {stac_catalog}")
                     break
             except Exception as e:
                 logging.error("An error occurred:", e)
