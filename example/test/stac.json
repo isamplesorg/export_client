@@ -129,7 +129,7 @@
             "alternate": {
                 "view": {
                     "title": "View parquet file",
-                    "href": "/ui/ds_view#/example/test/isamples_export_geo.parquet"
+                    "href": "/ui/ds_view.html#/data/test/isamples_export_geo.parquet"
                 }
             }
         }
