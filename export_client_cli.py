@@ -107,6 +107,20 @@ def server(download_dir: str, ui_dir: str, browser_dir: str, port: int):
     opener.start()
     server.run()
 
+@main.command("login")
+@click.option(
+    "-u",
+    "--url",
+    help="iSamples server URL",
+    default="https://central.isample.xyz/isamples_central/"
+)
+def do_login(url: str):
+    url = url.rstrip("/")
+    target = f"{url}/manage/login?raw_jwt=true"
+    print("Opening for login. When complete, copy the JWT for use with this export client.")
+    print('For example: export JWT="$(pbpaste)"')
+    webbrowser.open(target)
+
 
 if __name__ == "__main__":
     main()
