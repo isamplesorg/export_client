@@ -233,6 +233,8 @@ class ExportClient:
         stac_items = self._gather_contained_stac_items(self._destination_directory)
         for item in stac_items:
             relative_path = os.path.relpath(item, self._destination_directory)
+            if relative_path == "./stac.json":
+                continue
             dirname = os.path.basename(os.path.dirname(item))
             stac_item_link = {
                 "rel": "child",

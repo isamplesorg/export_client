@@ -21,6 +21,11 @@ geoarrow-pandas = "^0.1.1"
 stac-validator = "^3.3.2"
 fastapi = "^0.111.0"
 
+[tool.poetry_bumpversion.file."isamples_export_client/__init__.py"]
+
+[tool.poetry.scripts]
+isample = 'isamples_export_client.__main__:main'
+
 [tool.poetry.group.dev.dependencies]
 flake8 = "^6.1.0"
 mypy = "^1.5.1"
