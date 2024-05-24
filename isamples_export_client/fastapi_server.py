@@ -1,17 +1,19 @@
 import logging
 import os
-from typing import BinaryIO
+import time
+from typing import BinaryIO, Optional
 
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.responses import StreamingResponse
 import fastapi.middleware.cors
 import fastapi.staticfiles
 import uvicorn
-from starlette.responses import FileResponse, Response
+from starlette.responses import FileResponse, Response, RedirectResponse
 
 # Byte range request code adapted from https://github.com/tiangolo/fastapi/discussions/7718
 
 app = fastapi.FastAPI()
+
 
 
 def send_bytes_range_requests(
@@ -88,10 +90,11 @@ def range_requests_response(
 
 
 class FastAPIServer:
-    def __init__(self, port: int, data_path: str, ui_path: str):
+    def __init__(self, port: int, data_path: str, ui_path: str, browser_path:Optional[str]=None):
         self.port = port
         self.data_path = data_path
         self.ui_path = ui_path
+        self.browser_path = browser_path
         self.app = FastAPI()
         self.app.add_middleware(
             fastapi.middleware.cors.CORSMiddleware,
@@ -104,11 +107,6 @@ class FastAPIServer:
         self.setup_routes()
 
     def setup_routes(self):
-        self.app.mount(
-            "/ui",
-            fastapi.staticfiles.StaticFiles(directory=self.ui_path),
-            name="ui",
-        )
 
         @self.app.get("/data/{identifier:path}")
         @self.app.head("/data/{identifier:path}")
@@ -117,6 +115,22 @@ class FastAPIServer:
             return range_requests_response(
                 request, file_path=path, content_type="application/x-parquet"
             )
+        self.app.mount(
+            "/ui",
+            fastapi.staticfiles.StaticFiles(directory=self.ui_path, html=True),
+            name="ui",
+        )
+        if (self.browser_path is not None):
+            self.app.mount(
+                "/",
+                fastapi.staticfiles.StaticFiles(directory=self.browser_path, html=True),
+                name="root",
+            )
+        else:
+            _url = f"https://radiantearth.github.io/stac-browser/#/external/http:/localhost:{self.port}/data/stac.json?.language=en"
+            @self.app.get("/")
+            def index(request:Request):
+                return RedirectResponse(url=_url)
 
     def run(self):
         uvicorn.run(self.app, host="0.0.0.0", port=self.port)

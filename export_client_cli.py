@@ -1,5 +1,9 @@
 import click
 import logging
+import multiprocessing
+import os.path
+import time
+import webbrowser
 from isamples_export_client.export_client import ExportClient
 from isamples_export_client.fastapi_server import FastAPIServer
 
@@ -73,8 +77,14 @@ def refresh(jwt: str, refresh_dir: str):
 @click.option(
     "-u",
     "--ui-dir",
-    help=("The location with the downloaded files."),
+    help=("The location with dataset viewer"),
     default="./ui/"
+)
+@click.option(
+    "-b",
+    "--browser-dir",
+    help=("The location with the stac browser files."),
+    default="./stac-browser/dist/"
 )
 @click.option(
     "-p",
@@ -82,9 +92,19 @@ def refresh(jwt: str, refresh_dir: str):
     help=("The port to start the server on."),
     default=8000
 )
-def server(download_dir: str, ui_dir: str, port: int):
-    server = FastAPIServer(port, download_dir, ui_dir)
-    logging.info(f"Starting server on port {port}, ui is available at http://localhost:{port}/ui/index.html")
+def server(download_dir: str, ui_dir: str, browser_dir: str, port: int):
+    def openBrowser():
+        url = f"http://localhost:{port}/"
+        logging.info(f"Opening browser at {url}...")
+        time.sleep(1)
+        webbrowser.open(url)
+
+    if not os.path.exists(browser_dir):
+        browser_dir = None
+    server = FastAPIServer(port, download_dir, ui_dir, browser_dir)
+    logging.info(f"Starting server on port {port}, ui is available at http://localhost:{port}/")
+    opener = multiprocessing.Process(target=openBrowser())
+    opener.start()
     server.run()
 
 
