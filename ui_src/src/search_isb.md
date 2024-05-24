@@ -3,6 +3,10 @@
 This is a proof of concept document for generating a simple UI for iSB using OF.
 
 ```js
+import {iSC} from './isclib.js';
+
+const isamples = new iSC();
+
 const query = view(Inputs.textarea({
     label: "Query",
     value: "*:*",
@@ -13,6 +17,7 @@ const query = view(Inputs.textarea({
 The current value is ${query}.
 
 ```js
+const nRecords = Mutable(0);
 const nrows = Mutable(0);
 const buffer_data = {"b":[]};
 const bufferPush = (r) => {
@@ -36,10 +41,22 @@ async function sleep(duration, fn, ...args) {
     return fn(...args);
 }
 
+async function pointStream(q) {
+    const handler = async function (v) {
+        console.log(v);
+    }
+    const yielder = function* yielder(h) {
+        
+    }
+    await isamples.pointStreamGenerator(q, handler)
+}
+
 async function fakeQuery(q) {
     const qv = q;
+    nRecords.value = isamples.countRecords(qv);
     const row = {"query": qv, "typeof":typeof(qv)};
     bufferPush(row);
+    pointStream(qv);
     return [row];    
 }
 
@@ -52,6 +69,8 @@ async function dependsFakeQuery(b) {
     //return b.b;
 }
 ```
+
+current match records = ${nRecords}
 
 Depends on input to Query:
 

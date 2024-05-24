@@ -1,44 +1,75 @@
+<link rel="stylesheet" href="styles.css">
+
 # View Dataset
 
 ```js
+let default_data_source = "http://localhost:8000/data/test/isamples_export_geo.parquet";
+if (location.hash) {
+    default_data_source = new URL(document.location.hash.substring(1), location).href;
+}
+const source_url = view(Inputs.textarea({value:default_data_source, submit:true}));
 /* 
 This part is a bit hacky and will likely change. 
 Basically, we want to use page_url#data_location to identify the data source for the page
 The DuckDB client wants an absolute url, but for convenience we just want to include the path to the file
- */
+const hash = Generators.observe((change) => {
+  const changed = () => change(location.hash);
+  addEventListener("hashchange", changed);
+  changed();
+  return () => removeEventListener("hashchange", changed);
+});
+
 const data_root = `${document.location.protocol}//${document.location.host}`;
 const page_data_source = document.location.hash;
-let source_url = `http://localhost:8080/example/test/isamples_export_geo.parquet`;
+const source_url = Mutable(`http://localhost:8000/data/test/isamples_export_geo.parquet`);
 
-if (document.location.hash) {
+if (hash) {
     let _source_url = document.location.hash.substring(1);
     if (!_source_url.startsWith("http")) {
         if (!_source_url.startsWith("/")) {
             _source_url = `/${_source_url}`;
         }
-        source_url = `${data_root}${_source_url}`;
+        source_url.value = `${data_root}${_source_url}`;
     } else {
-        source_url = _source_url;
+        source_url.value = _source_url;
     }
 }
+*/
 ```
 
 ```js
 /*
 Setup the data source, which is an instance of the Sample class defined in ./sample.js
  */
+const sourceErrorMessage = (msg) => {
+    const ele = document.getElementById("error_notice");
+    if (ele) {
+        if (msg) {
+            ele.innerText = msg;
+        } else {
+            ele.remove();
+        }
+    } else {
+        if (msg) {
+            display(html`<div id="error_notice" class="caution" label="Error">${msg}</div>`);
+        }
+    }
+    
+}
+
 import {Samples} from './sample.js';
 const db = await DuckDBClient.of();
 const samples = new Samples(db)
-await samples.init(source_url);
+try {
+    sourceErrorMessage("");
+    await samples.init(source_url);
+} catch (e) {
+    sourceErrorMessage(html`Unable to load resource from: ${source_url}<br /><code>${e}</code>`);
+    console.log(e);
+}
 ```
 
-This resource is loaded from:
-
-${source_url} 
-
-and contains ${samples.totalRecords} records.
-
+The dataset resource contains ${samples.totalRecords} records.
 
 ```js
 import * as L from "npm:leaflet";
@@ -53,7 +84,7 @@ div.style = "height: 600px;";
 
 const map = L.map(div)
   .setView([0, 0], 2);
-
+L.DomUtil.addClass(map._container,'crosshair-cursor-enabled');
 L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
   attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
 })
@@ -116,6 +147,9 @@ async function renderNewBounds() {
     const miny = map.getBounds().getSouth();
     const maxy = map.getBounds().getNorth();
     let bb = [minx, miny, maxx, maxy];
+    //Override and get all points for now
+    //TODO: This should be dynamically loading points based on the view extents.
+    bb = [-180, -90, 180, 90];
     const zoom = map.getZoom();
     //glify_points.remove();
     data_points.length = 0;

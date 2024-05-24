@@ -19,7 +19,11 @@ export class Samples {
         if (data_source_url.endsWith(".parquet")) {
             q = `CREATE TABLE samples AS SELECT * FROM read_parquet('${data_source_url}')`;
         }
-        return this._db.query(q);
+        try {
+            return this._db.query(q);
+        } catch (e) {
+            console.log(e);
+        }
     }
 
     get totalRecords() {
@@ -55,12 +59,17 @@ export class Samples {
         /*
         Returns records that have the same location as the record with the specified identifier.
          */
+        // TODO: fuzziness should be a function of zoom level.
+        const dx = 0.001;
+        const dy = 0.001;
         const q = `select sample_identifier, source_collection, label from samples s
             inner join (select produced_by.sampling_site.sample_location.longitude as x,
               produced_by.sampling_site.sample_location.latitude as y from samples 
               where sample_identifier='${pid}') sm
-            on s.produced_by.sampling_site.sample_location.longitude=sm.x
-            and produced_by.sampling_site.sample_location.latitude=sm.y;`;
+            on s.produced_by.sampling_site.sample_location.longitude>=sm.x-${dx}
+            and s.produced_by.sampling_site.sample_location.longitude<=sm.x+${dx}                   
+            and produced_by.sampling_site.sample_location.latitude>=sm.y-${dy}
+            and produced_by.sampling_site.sample_location.latitude<=sm.y+${dy};`;
         return this._db.query(q);
     }
 }

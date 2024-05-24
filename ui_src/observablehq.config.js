@@ -11,7 +11,9 @@ export default {
       name: "Viewer",
       pages: [
         {name: "Index", path: "/index"},
-        {name: "Dataset", path: "/ds_view"}
+        {name: "Dataset", path: "/ds_view"},
+        {name: "iSB PoC", path: "/search_isb"},
+        {name: "Data Source", path: "/data_source"}
       ]
     }
   ],
@@ -33,5 +35,5 @@ export default {
   // search: true, // activate search
   // linkify: true, // convert URLs in Markdown to links
   // typographer: false, // smart quotes and other typographic improvements
-  // cleanUrls: true, // drop .html from URLs
+  cleanUrls: false, // drop .html from URLs
 };
