@@ -127,11 +127,11 @@ class ExportClient:
 
     @classmethod
     def _stac_item_path(cls, dir_path: str):
-        return os.path.join(dir_path, "stac-item.json")
+        return os.path.join(dir_path, "stac.json")
 
     @classmethod
     def _stac_catalog_path(cls, dir_path: str):
-        return os.path.join(dir_path, "stac-catalog.json")
+        return os.path.join(dir_path, "stac.json")
 
     def _authentication_headers(self) -> dict:
         return {
@@ -213,7 +213,7 @@ class ExportClient:
 
     def _gather_contained_stac_items(self, destination_directory: str) -> list[str]:
         start_path = Path(destination_directory)
-        return list(start_path.rglob("stac-item.json"))
+        return list(start_path.rglob("stac.json"))
 
     def write_stac_catalog(self):
         stac_catalog_path = ExportClient._stac_catalog_path(self._destination_directory)
@@ -268,6 +268,7 @@ class ExportClient:
             solr_query: str,
             json_file_path: str,
             parquet_file_path: str) -> str:
+
         assets_dict = {
         }
         description_string = (
@@ -282,12 +283,19 @@ class ExportClient:
                 "roles": [
                     "data"
                 ],
-                "description": "GeoParquet representation of the collection."
+                "description": "GeoParquet representation of the collection.",
+                "alternate": {
+                    "view" : {
+                        "title": "View parquet file",
+                        "href": f"/ui/ds_view.html#/data/{os.path.relpath(parquet_file_path, self._destination_directory)}"
+                    }
+                }
             }
         stac_item = {
             "stac_version": STAC_VERSION,
             "stac_extensions": [
-                "https://stac-extensions.github.io/table/v1.2.0/schema.json"
+                "https://stac-extensions.github.io/table/v1.2.0/schema.json",
+                "https://stac-extensions.github.io/alternate-assets/v1.1.0/schema.json"
             ],
             "type": STAC_COLLECTION_TYPE,
             "id": f"iSamples Export Service result {uuid}",
