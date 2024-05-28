@@ -34,8 +34,8 @@ def solr_query():
 
 
 def test_stac(geo_features_result: GeoFeaturesResult, temporal_extent: TemporalExtent, solr_query: str):
-    export_client = ExportClient(solr_query, "./test_data/", "123456", "http://foo", "jsonl")
-    stac_file = export_client.write_stac(str(uuid.uuid4()), datetime.datetime.now(), geo_features_result, temporal_extent, solr_query, "123456.jsonl", "123456.jsonl_geo.parquet")
+    export_client = ExportClient(solr_query, "./test_data/", "123456", "http://foo", "jsonl", "title", "description")
+    stac_file = export_client.write_stac_item(str(uuid.uuid4()), datetime.datetime.now(), geo_features_result, temporal_extent, solr_query, "123456.jsonl", "123456.jsonl_geo.parquet")
     stac = stac_validator.StacValidate(stac_file, extensions=True)
     result = stac.run()
     print(stac.message)
