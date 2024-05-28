@@ -220,7 +220,7 @@ class ExportClient:
         start_path = Path(destination_directory)
         return list(start_path.rglob("stac.json"))
 
-    def write_stac_catalog(self):
+    def write_stac_catalog(self) -> str:
         stac_catalog_path = ExportClient._stac_catalog_path(self._destination_directory)
         catalog_filename = os.path.basename(stac_catalog_path)
         links = [
