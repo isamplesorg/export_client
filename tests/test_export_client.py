@@ -4,6 +4,7 @@ import os.path
 import shutil
 import uuid
 from datetime import timezone, timedelta
+from unittest.mock import MagicMock, patch
 
 import pytest
 from stac_validator import stac_validator
@@ -11,6 +12,7 @@ from stac_validator import stac_validator
 from isamples_export_client.duckdb_utilities import GeoFeaturesResult, TemporalExtent
 from isamples_export_client.export_client import ExportClient
 
+MOCK_UUID = "abcdef"
 
 @pytest.fixture
 def geo_features_result() -> GeoFeaturesResult:
@@ -37,11 +39,14 @@ def solr_query():
 
 
 @pytest.fixture
-def export_client(solr_query: str) -> ExportClient:
-    test_data_dir = os.path.join(os.path.dirname(__file__), f"test_data/{uuid.uuid4()}")
+def test_data_dir() -> str:
+    return os.path.join(os.path.dirname(__file__), f"test_data/{uuid.uuid4()}")
+
+@pytest.fixture
+def export_client(solr_query: str, test_data_dir: str) -> ExportClient:
     if os.path.exists(test_data_dir):
         shutil.rmtree(test_data_dir)
-    return ExportClient(solr_query, test_data_dir, "123456", "http://foo", "jsonl", "title", "description")
+    return ExportClient(solr_query, test_data_dir, "123456", "http://foo", "jsonl", "title", "description", None, MagicMock())
 
 @pytest.fixture
 def uuid_fixture() -> str:
@@ -68,3 +73,15 @@ def test_write_manifest(solr_query: str, export_client: ExportClient, uuid_fixtu
     with open(manifest_path, "r") as file:
         data = json.load(file)
         assert len(data) > 0
+
+
+
+def test_create(export_client: ExportClient):
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {
+        "uuid": MOCK_UUID
+    }
+    export_client._rsession.get.return_value = mock_response
+    result = export_client.create()
+    assert result == MOCK_UUID
