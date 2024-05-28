@@ -3,9 +3,11 @@ import logging
 import multiprocessing
 import os.path
 import time
+import typing
 import webbrowser
 from isamples_export_client.export_client import ExportClient
 from isamples_export_client.fastapi_server import FastAPIServer
+
 
 token_option = click.option(
     "-t",
@@ -15,6 +17,16 @@ token_option = click.option(
     help="The JWT for the authenticated user.",
     required=True
 )
+
+
+def getCurrentPyFolder(pyname: typing.Optional[str] = None)  -> str:
+    '''Return folder of specified file path.
+
+    By default, returns the path to this script.
+    '''
+    if pyname is None:
+        pyname = __file__
+    return os.path.dirname(pyname)
 
 
 @click.group()
@@ -82,7 +94,7 @@ def refresh(jwt: str, refresh_dir: str):
     "-u",
     "--ui-dir",
     help=("The location with dataset viewer"),
-    default="./ui/"
+    default=os.path.join(getCurrentPyFolder(), "ui")
 )
 @click.option(
     "-b",

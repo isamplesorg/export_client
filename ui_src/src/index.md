@@ -23,7 +23,22 @@ async function loadCatalog(url) {
     return new Collection(data, url);
 }
 
+function listDatasets(source) {
+    const datasets = [];
+    for (const item of source.links) {
+        if (item.rel === "child") {
+            datasets.push({
+                "Title":item.title,
+                "Link": item.href
+            })
+        }
+    }
+    return datasets;
+}
+
 const collection = await loadCatalog("http://localhost:8000/data/stac.json");
+
+
 
 ```
 ${collection.title}
@@ -32,10 +47,12 @@ ${collection.type} ${collection.stac_version}
 
 ${md`${collection.description}`}
 
-Assets:
+Datasets:
 
-```js
-```
+${Inputs.table(listDatasets(collection))}
+
+---
+
 <pre>
 ${JSON.stringify(collection, null, 2)}
 </pre>
