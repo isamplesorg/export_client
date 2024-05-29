@@ -80,6 +80,8 @@ class ExportClient:
                  jwt: str,
                  export_server_url: str,
                  format: str,
+                 collection_title: str,
+                 collection_description: str,
                  refresh_date: Optional[str] = None,
                  session: Session = requests.session(),
                  sleep_time: float = 5):
@@ -99,6 +101,9 @@ class ExportClient:
         self._refresh_date = refresh_date
         self._rsession = session
         self._sleep_time = sleep_time
+        self._collection_title = collection_title
+        self._collection_description = collection_description
+
         try:
             os.makedirs(name=self._destination_directory, exist_ok=True)
         except OSError as e:
@@ -215,7 +220,7 @@ class ExportClient:
         start_path = Path(destination_directory)
         return list(start_path.rglob("stac.json"))
 
-    def write_stac_catalog(self):
+    def write_stac_catalog(self) -> str:
         stac_catalog_path = ExportClient._stac_catalog_path(self._destination_directory)
         catalog_filename = os.path.basename(stac_catalog_path)
         links = [
@@ -244,12 +249,15 @@ class ExportClient:
             }
             links.append(stac_item_link)
 
+        title = self._collection_title or "iSamples STAC Catalog"
+        description = self._collection_description or "STAC Catalog from iSamples Exports"
+
         stac_catalog = {
             "type": STAC_CATALOG_TYPE,
             # TODO: this needs to be a UUID for the whole catalog.  Where does that come from?
             "id": "iSamples Catalog",
-            "title": "iSamples STAC Catalog",
-            "description": "STAC Catalog from iSamples Exports",
+            "title": title,
+            "description": description,
             "stac_version": STAC_VERSION,
             # TODO: what's this?
             "conformsTo": "conformsTo",
@@ -273,10 +281,11 @@ class ExportClient:
 
         assets_dict = {
         }
-        description_string = (
+        description_string = self._collection_description or (
             f"iSamples Export Service results intiated at {tstarted}.  The solr query that produced this collection was  \n"
             f"```{solr_query}```.  \n"
         )
+        title_string = self._collection_title or f"{COLLECTION_TITLE} {uuid}"
         if self.is_geoparquet:
             assets_dict["data"] = {
                 "href": f"./{os.path.basename(parquet_file_path)}",
@@ -301,7 +310,7 @@ class ExportClient:
             ],
             "type": STAC_COLLECTION_TYPE,
             "id": f"iSamples Export Service result {uuid}",
-            "collection": f"{COLLECTION_TITLE} {uuid}",
+            "collection": title_string,
             "license": STAC_DEFAULT_LICENSE,
             "extent": {
                 "spatial": {

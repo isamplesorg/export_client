@@ -10,7 +10,7 @@ from isamples_export_client.fastapi_server import FastAPIServer
 
 
 token_option = click.option(
-    "-t",
+    "-j",
     "--jwt",
     type=str,
     default=None,
@@ -60,10 +60,20 @@ def main():
     type=click.Choice(["jsonl", "csv", "geoparquet"], case_sensitive=False),
     default="jsonl"
 )
-def export(jwt: str, url: str, query: str, destination: str, format: str):
+@click.option(
+    "-t",
+    "--title",
+    help="Human readable title for the generated STAC collection, if not specified one will be generated.",
+)
+@click.option(
+    "-r",
+    "--description",
+    help="Human readable description for the generated STAC collection, if not specified one will be generated.",
+)
+def export(jwt: str, url: str, query: str, destination: str, format: str, title: str, description: str):
     """Export records from iSamples to a local copy.
     """
-    client = ExportClient(query, destination, jwt, url, format)
+    client = ExportClient(query, destination, jwt, url, format, title, description)
     client.perform_full_download()
 
 
