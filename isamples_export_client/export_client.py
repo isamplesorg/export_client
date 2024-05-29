@@ -451,8 +451,7 @@ class ExportClient:
                     if self.is_geoparquet:
                         parquet_filename = write_geoparquet_from_json_lines(filename)
                     print(status_json)
-                    query_string = status_json.get("query").replace("'", "\"")
-                    solr_query_dict = json.loads(query_string)
+                    solr_query_dict = json.loads(status_json.get("query"))
                     query = solr_query_dict.pop("q")
                     stac_path = self.write_stac_item(uuid, tstarted, geo_result, temporal_result, query, filename, parquet_filename)
                     logging.info(f"Successfully wrote stac item to {stac_path}")
