@@ -129,6 +129,7 @@ def server(download_dir: str, ui_dir: str, browser_dir: str, port: int):
 
     if not os.path.exists(browser_dir):
         browser_dir = None
+    download_dir = os.path.abspath(download_dir)
     server = FastAPIServer(port, download_dir, ui_dir, browser_dir)
     logging.info(f"Starting server on port {port}, ui is available at http://localhost:{port}/")
     opener = multiprocessing.Process(target=openBrowser())

@@ -16,16 +16,29 @@ Commands:
 
 ## Installation
 
-For non-development installation, the iSample client may be installed using `pipx`:
+The iSample client is currently under active development and the sources will be updated frequently.
+
+The iSample client may be installed using `pipx`:
 
 ```
 pipx install "git+https://github.com/isamplesorg/export_client.git"
 ```
 
+or from a specific branch:
 
+```
+pipx install "git+https://github.com/isamplesorg/export_client.git@local_ui"
+```
 
+Alternatively, checkout the source from GitHub and install to a virtual environment using Poetry:
 
-The iSample client is currently under active development
+```
+git clone https://github.com/isamplesorg/export_client.git
+cd export_client
+poetry install
+poetry run isample
+```
+
 
 ## login
 
