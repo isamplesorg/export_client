@@ -75,13 +75,39 @@ def test_write_manifest(solr_query: str, export_client: ExportClient, uuid_fixtu
         assert len(data) > 0
 
 
+def _configure_mock_response_for_export_client(export_client: ExportClient, status_code: int, json_val: dict):
+    mock_response = MagicMock()
+    mock_response.status_code = status_code
+    mock_response.json.return_value = json_val
+    export_client._rsession.get.return_value = mock_response
+
 
 def test_create(export_client: ExportClient):
-    mock_response = MagicMock()
-    mock_response.status_code = 200
-    mock_response.json.return_value = {
-        "uuid": MOCK_UUID
-    }
-    export_client._rsession.get.return_value = mock_response
+    _configure_mock_response_for_export_client(export_client, 200, {"uuid": MOCK_UUID})
     result = export_client.create()
     assert result == MOCK_UUID
+
+
+def test_status(export_client: ExportClient):
+    _configure_mock_response_for_export_client(export_client, 200, {"status": "completed"})
+    result = export_client.status("abcdef")
+    assert result["status"] == "completed"
+
+
+def test_status_raise_invalid(export_client: ExportClient):
+    _configure_mock_response_for_export_client(export_client, 400, {})
+    with pytest.raises(Exception):
+        export_client.status("abcdef")
+
+
+def test_download(export_client: ExportClient):
+    def mock_download_generator():
+        yield """{"id":"123456"}"""
+
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.iter_content.return_value = mock_download_generator
+    export_client._rsession.get.return_value = mock_response
+    filename = export_client.download("abcdef")
+    assert filename is not None
+    assert os.path.exists(filename)
