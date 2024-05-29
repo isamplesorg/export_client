@@ -175,7 +175,7 @@ class ExportClient:
     def download(self, uuid: str) -> str:
         """Download the exported result set to the specified destination"""
         download_url = f"{self._export_server_url}download?uuid={uuid}"
-        with requests.get(download_url, stream=True, headers=self._authentication_headers()) as r:
+        with self._rsession.get(download_url, stream=True, headers=self._authentication_headers()) as r:
             r.raise_for_status()
             current_time = datetime.datetime.now()
             date_string = current_time.strftime("%Y_%m_%d_%H_%M_%S")
