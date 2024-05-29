@@ -114,7 +114,7 @@ def server(download_dir: str, ui_dir: str, browser_dir: str, port: int):
     def openBrowser():
         url = f"http://localhost:{port}/"
         logging.info(f"Opening browser at {url}...")
-        time.sleep(1)
+        time.sleep(2)
         webbrowser.open(url)
 
     if not os.path.exists(browser_dir):
