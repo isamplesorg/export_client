@@ -3,9 +3,11 @@ import logging
 import multiprocessing
 import os.path
 import time
+import typing
 import webbrowser
 from isamples_export_client.export_client import ExportClient
 from isamples_export_client.fastapi_server import FastAPIServer
+
 
 token_option = click.option(
     "-j",
@@ -15,6 +17,16 @@ token_option = click.option(
     help="The JWT for the authenticated user.",
     required=True
 )
+
+
+def getCurrentPyFolder(pyname: typing.Optional[str] = None)  -> str:
+    '''Return folder of specified file path.
+
+    By default, returns the path to this script.
+    '''
+    if pyname is None:
+        pyname = __file__
+    return os.path.dirname(pyname)
 
 
 @click.group()
@@ -92,7 +104,7 @@ def refresh(jwt: str, refresh_dir: str):
     "-u",
     "--ui-dir",
     help=("The location with dataset viewer"),
-    default="./ui/"
+    default=os.path.join(getCurrentPyFolder(), "ui")
 )
 @click.option(
     "-b",
@@ -112,11 +124,12 @@ def server(download_dir: str, ui_dir: str, browser_dir: str, port: int):
     def openBrowser():
         url = f"http://localhost:{port}/"
         logging.info(f"Opening browser at {url}...")
-        time.sleep(1)
+        time.sleep(2)
         webbrowser.open(url)
 
     if not os.path.exists(browser_dir):
         browser_dir = None
+    download_dir = os.path.abspath(download_dir)
     server = FastAPIServer(port, download_dir, ui_dir, browser_dir)
     logging.info(f"Starting server on port {port}, ui is available at http://localhost:{port}/")
     opener = multiprocessing.Process(target=openBrowser())

@@ -41,6 +41,19 @@ export class Samples {
         return this._db.query(q);
     }
 
+    async vocabularyTermCounts() {
+        const facet_field = "has_material_category"
+        const q = `WITH mcrows AS (
+  SELECT DISTINCT unnest(${facet_field}) AS mc 
+  FROM samples
+) SELECT count(*) AS n, source_collection, mcrows.mc 
+FROM samples
+JOIN mcrows ON list_contains(${facet_field}, mcrows.mc)
+GROUP BY source_collection, mcrows.mc
+ORDER BY mcrows.mc ASC`;
+        return this._db.query(q);
+    }
+
     async getRecordsByBB(bb) {
         /*
         Returns x,y,pid of samples within bounding box of
@@ -53,6 +66,11 @@ export class Samples {
           sample_identifier as pid from samples 
           where x>=${bb[0]} and x<=${bb[2]} and y>=${bb[1]} and y<=${bb[2]};`;
         return this._db.query(q);
+    }
+
+    async getRecord(pid) {
+        const q = "SELECT * FROM samples WHERE sample_identifier=?";
+        return this._db.query(q, pid);
     }
 
     async getRecordsById(pid) {

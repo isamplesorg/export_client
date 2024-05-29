@@ -14,7 +14,7 @@
 <link rel="modulepreload" href="./_observablehq/client.js">
 <link rel="modulepreload" href="./_observablehq/runtime.js">
 <link rel="modulepreload" href="./_observablehq/stdlib.js">
-<link rel="modulepreload" href="./_import/sample.b3259203.js">
+<link rel="modulepreload" href="./_import/sample.7389c5f6.js">
 <link rel="modulepreload" href="./_npm/leaflet@1.9.4/_esm.js">
 <link rel="modulepreload" href="./_npm/leaflet.glify@3.2.0/_esm.js">
 <link rel="modulepreload" href="./_npm/leaflet-spin@1.1.2/_esm.js">
@@ -33,44 +33,17 @@
 
 import {define} from "./_observablehq/client.js";
 
-define({id: "8fbce464", inputs: ["location","view","Inputs"], outputs: ["default_data_source","source_url"], body: (location,view,Inputs) => {
+define({id: "d626992b", inputs: ["location","view","Inputs"], outputs: ["default_data_source","source_url"], body: (location,view,Inputs) => {
 let default_data_source = "http://localhost:8000/data/test/isamples_export_geo.parquet";
 if (location.hash) {
     default_data_source = new URL(document.location.hash.substring(1), location).href;
 }
 const source_url = view(Inputs.textarea({value:default_data_source, submit:true}));
-/* 
-This part is a bit hacky and will likely change. 
-Basically, we want to use page_url#data_location to identify the data source for the page
-The DuckDB client wants an absolute url, but for convenience we just want to include the path to the file
-const hash = Generators.observe((change) => {
-  const changed = () => change(location.hash);
-  addEventListener("hashchange", changed);
-  changed();
-  return () => removeEventListener("hashchange", changed);
-});
-
-const data_root = `${document.location.protocol}//${document.location.host}`;
-const page_data_source = document.location.hash;
-const source_url = Mutable(`http://localhost:8000/data/test/isamples_export_geo.parquet`);
-
-if (hash) {
-    let _source_url = document.location.hash.substring(1);
-    if (!_source_url.startsWith("http")) {
-        if (!_source_url.startsWith("/")) {
-            _source_url = `/${_source_url}`;
-        }
-        source_url.value = `${data_root}${_source_url}`;
-    } else {
-        source_url.value = _source_url;
-    }
-}
-*/
 return {default_data_source,source_url};
 }});
 
 define({id: "f0629a64", inputs: ["display","html","DuckDBClient","source_url"], outputs: ["sourceErrorMessage","Samples","db","samples"], body: async (display,html,DuckDBClient,source_url) => {
-const {Samples} = await import("./_import/sample.b3259203.js");
+const {Samples} = await import("./_import/sample.7389c5f6.js");
 /*
 Setup the data source, which is an instance of the Sample class defined in ./sample.js
  */
@@ -108,24 +81,42 @@ samples.totalRecords
 ))
 }});
 
-define({id: "3413fbc2", outputs: ["L","glify","spin"], body: async () => {
+define({id: "2764359f", inline: true, inputs: ["Inputs","samples","display"], body: async (Inputs,samples,display) => {
+display(await(
+Inputs.table(samples.vocabularyTermCounts())
+))
+}});
+
+define({id: "dece3b7d", outputs: ["L","glify","spin"], body: async () => {
 const [L, glify, spin] = await Promise.all([import("./_npm/leaflet@1.9.4/_esm.js"), import("./_npm/leaflet.glify@3.2.0/_esm.js"), import("./_npm/leaflet-spin@1.1.2/_esm.js")]);
 
 return {L,glify,spin};
 }});
 
-define({id: "1bab5cb0", inputs: ["display","L","Inputs","glify","samples","Event"], outputs: ["div","map","sourcemap","colormap","records_table","clicked_point","data_points","glify_points","renderNewBounds"], body: (display,L,Inputs,glify,samples,Event) => {
+define({id: "d4012631", inputs: ["display","L","html","Inputs","glify","samples","Event"], outputs: ["div","map","osm","mapLink","wholink","esri","baseMaps","layerControl","sourcemap","colormap","tableOptions","records_table","clicked_point","data_points","tooltip","glify_points","renderNewBounds"], body: (display,L,html,Inputs,glify,samples,Event) => {
 const div = display(document.createElement("div"));
 div.style = "height: 600px;";
 
 const map = L.map(div)
   .setView([0, 0], 2);
 L.DomUtil.addClass(map._container,'crosshair-cursor-enabled');
-L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+const osm = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
   attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-})
-  .addTo(map);
+});
+osm.addTo(map); 
 
+const mapLink = '<a href="http://www.esri.com/">Esri</a>';
+const wholink = 'i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community';
+const esri = L.tileLayer('http://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', 
+    {
+        attribution: '&copy; '+mapLink+', '+wholink,
+        maxZoom: 18,
+    });
+const baseMaps = {
+    "OpenStreetMap": osm,
+    "ESRI Satellite": esri 
+}
+const layerControl = L.control.layers(baseMaps).addTo(map);
 ////
 
 const sourcemap = {
@@ -142,6 +133,14 @@ const colormap = {
   3: {r:0.5,g:0,b:1,a:0.1},
 }
 
+const tableOptions = {
+    format:{
+        "sample_identifier": (v) => {
+            return html`<a href="https://n2t.net/${v}">${v}</a>`;
+        }
+    }
+}
+
 let records_table = Inputs.table([{}]);
 
 const clicked_point = Inputs.text({
@@ -151,6 +150,7 @@ const clicked_point = Inputs.text({
   });
 
 let data_points = [];
+let tooltip = new L.Tooltip();
 
 let glify_points = glify.glify.points({
     map:map,
@@ -165,7 +165,7 @@ let glify_points = glify.glify.points({
       console.log(p);
       clicked_point.value = p[3];
       samples.getRecordsById(p[3]).then((rows) => {
-          records_table = Inputs.table(rows);
+          records_table = Inputs.table(rows, tableOptions);
           const rdiv = document.getElementById("selected_records");
           rdiv.replaceChildren(records_table);
       }).catch((e) => {
@@ -173,6 +173,13 @@ let glify_points = glify.glify.points({
           console.log(e);
       });
       clicked_point.dispatchEvent(new Event("input", {bubbles: true}));
+    },
+    hover: (e, feature) => {
+        console.log(feature);
+        tooltip
+            .setLatLng(e.latlng)
+            .setContent(feature[3])
+            .addTo(map);
     }
   });
 
@@ -197,8 +204,9 @@ async function renderNewBounds() {
     });
 }
 
+
 renderNewBounds();
-return {div,map,sourcemap,colormap,records_table,clicked_point,data_points,glify_points,renderNewBounds};
+return {div,map,osm,mapLink,wholink,esri,baseMaps,layerControl,sourcemap,colormap,tableOptions,records_table,clicked_point,data_points,tooltip,glify_points,renderNewBounds};
 }});
 
 define({id: "d7fc1347", inline: true, inputs: ["clicked_point","display"], body: async (clicked_point,display) => {
@@ -242,11 +250,13 @@ records_table
 <main id="observablehq-main" class="observablehq">
 <link rel="stylesheet" href="./_file/styles.9124d518.css">
 <h1 id="view-dataset" tabindex="-1"><a class="observablehq-header-anchor" href="#view-dataset">View Dataset</a></h1>
-<div id="cell-8fbce464" class="observablehq observablehq--block"></div>
+<div id="cell-d626992b" class="observablehq observablehq--block"></div>
 <div id="cell-f0629a64" class="observablehq observablehq--block"></div>
 <p>The dataset resource contains <span id="cell-77e5fa2a"><span class="observablehq-loading"></span></span> records.</p>
-<div id="cell-3413fbc2" class="observablehq observablehq--block"></div>
-<div id="cell-1bab5cb0" class="observablehq observablehq--block"></div>
+<p>Material type:</p>
+<p><span id="cell-2764359f"><span class="observablehq-loading"></span></span></p>
+<div id="cell-dece3b7d" class="observablehq observablehq--block"></div>
+<div id="cell-d4012631" class="observablehq observablehq--block"></div>
 <p><span id="cell-d7fc1347"><span class="observablehq-loading"></span></span></p>
 <p>Selected:</p>
 <div id="selected_records">

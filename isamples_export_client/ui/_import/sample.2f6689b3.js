@@ -55,6 +55,11 @@ export class Samples {
         return this._db.query(q);
     }
 
+    async getRecord(pid) {
+        const q = "SELECT * FROM samples WHERE sample_identifier=?";
+        return this._db.query(q, pid);
+    }
+
     async getRecordsById(pid) {
         /*
         Returns records that have the same location as the record with the specified identifier.

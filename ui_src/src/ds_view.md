@@ -8,33 +8,6 @@ if (location.hash) {
     default_data_source = new URL(document.location.hash.substring(1), location).href;
 }
 const source_url = view(Inputs.textarea({value:default_data_source, submit:true}));
-/* 
-This part is a bit hacky and will likely change. 
-Basically, we want to use page_url#data_location to identify the data source for the page
-The DuckDB client wants an absolute url, but for convenience we just want to include the path to the file
-const hash = Generators.observe((change) => {
-  const changed = () => change(location.hash);
-  addEventListener("hashchange", changed);
-  changed();
-  return () => removeEventListener("hashchange", changed);
-});
-
-const data_root = `${document.location.protocol}//${document.location.host}`;
-const page_data_source = document.location.hash;
-const source_url = Mutable(`http://localhost:8000/data/test/isamples_export_geo.parquet`);
-
-if (hash) {
-    let _source_url = document.location.hash.substring(1);
-    if (!_source_url.startsWith("http")) {
-        if (!_source_url.startsWith("/")) {
-            _source_url = `/${_source_url}`;
-        }
-        source_url.value = `${data_root}${_source_url}`;
-    } else {
-        source_url.value = _source_url;
-    }
-}
-*/
 ```
 
 ```js
@@ -71,12 +44,16 @@ try {
 
 The dataset resource contains ${samples.totalRecords} records.
 
+Material type:
+
+${Inputs.table(samples.vocabularyTermCounts())}
+
 ```js
 import * as L from "npm:leaflet";
 import * as glify from "npm:leaflet.glify";
 import * as spin from "npm:leaflet-spin";
-
 ```
+
 ```js
 
 const div = display(document.createElement("div"));
@@ -85,11 +62,23 @@ div.style = "height: 600px;";
 const map = L.map(div)
   .setView([0, 0], 2);
 L.DomUtil.addClass(map._container,'crosshair-cursor-enabled');
-L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+const osm = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
   attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-})
-  .addTo(map);
+});
+osm.addTo(map); 
 
+const mapLink = '<a href="http://www.esri.com/">Esri</a>';
+const wholink = 'i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community';
+const esri = L.tileLayer('http://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', 
+    {
+        attribution: '&copy; '+mapLink+', '+wholink,
+        maxZoom: 18,
+    });
+const baseMaps = {
+    "OpenStreetMap": osm,
+    "ESRI Satellite": esri 
+}
+const layerControl = L.control.layers(baseMaps).addTo(map);
 ////
 
 const sourcemap = {
@@ -106,6 +95,14 @@ const colormap = {
   3: {r:0.5,g:0,b:1,a:0.1},
 }
 
+const tableOptions = {
+    format:{
+        "sample_identifier": (v) => {
+            return html`<a href="https://n2t.net/${v}">${v}</a>`;
+        }
+    }
+}
+
 let records_table = Inputs.table([{}]);
 
 const clicked_point = Inputs.text({
@@ -115,6 +112,7 @@ const clicked_point = Inputs.text({
   });
 
 let data_points = [];
+let tooltip = new L.Tooltip();
 
 let glify_points = glify.glify.points({
     map:map,
@@ -129,7 +127,7 @@ let glify_points = glify.glify.points({
       console.log(p);
       clicked_point.value = p[3];
       samples.getRecordsById(p[3]).then((rows) => {
-          records_table = Inputs.table(rows);
+          records_table = Inputs.table(rows, tableOptions);
           const rdiv = document.getElementById("selected_records");
           rdiv.replaceChildren(records_table);
       }).catch((e) => {
@@ -137,6 +135,13 @@ let glify_points = glify.glify.points({
           console.log(e);
       });
       clicked_point.dispatchEvent(new Event("input", {bubbles: true}));
+    },
+    hover: (e, feature) => {
+        console.log(feature);
+        tooltip
+            .setLatLng(e.latlng)
+            .setContent(feature[3])
+            .addTo(map);
     }
   });
 
@@ -160,6 +165,7 @@ async function renderNewBounds() {
         glify_points.render();
     });
 }
+
 
 renderNewBounds();
 ```

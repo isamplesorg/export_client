@@ -19,7 +19,11 @@ export class Samples {
         if (data_source_url.endsWith(".parquet")) {
             q = `CREATE TABLE samples AS SELECT * FROM read_parquet('${data_source_url}')`;
         }
-        return this._db.query(q);
+        try {
+            return this._db.query(q);
+        } catch (e) {
+            console.log(e);
+        }
     }
 
     get totalRecords() {
@@ -37,6 +41,19 @@ export class Samples {
         return this._db.query(q);
     }
 
+    async vocabularyTermCounts() {
+        const facet_field = "has_material_category"
+        const q = `WITH mcrows AS (
+  SELECT DISTINCT unnest(${facet_field}) AS mc 
+  FROM samples
+) SELECT count(*) AS n, source_collection, mcrows.mc 
+FROM samples
+JOIN mcrows ON list_contains(${facet_field}, mcrows.mc)
+GROUP BY source_collection, mcrows.mc
+ORDER BY mcrows.mc ASC`;
+        return this._db.query(q);
+    }
+
     async getRecordsByBB(bb) {
         /*
         Returns x,y,pid of samples within bounding box of
@@ -51,16 +68,26 @@ export class Samples {
         return this._db.query(q);
     }
 
+    async getRecord(pid) {
+        const q = "SELECT * FROM samples WHERE sample_identifier=?";
+        return this._db.query(q, pid);
+    }
+
     async getRecordsById(pid) {
         /*
         Returns records that have the same location as the record with the specified identifier.
          */
+        // TODO: fuzziness should be a function of zoom level.
+        const dx = 0.001;
+        const dy = 0.001;
         const q = `select sample_identifier, source_collection, label from samples s
             inner join (select produced_by.sampling_site.sample_location.longitude as x,
               produced_by.sampling_site.sample_location.latitude as y from samples 
               where sample_identifier='${pid}') sm
-            on s.produced_by.sampling_site.sample_location.longitude=sm.x
-            and produced_by.sampling_site.sample_location.latitude=sm.y;`;
+            on s.produced_by.sampling_site.sample_location.longitude>=sm.x-${dx}
+            and s.produced_by.sampling_site.sample_location.longitude<=sm.x+${dx}                   
+            and produced_by.sampling_site.sample_location.latitude>=sm.y-${dy}
+            and produced_by.sampling_site.sample_location.latitude<=sm.y+${dy};`;
         return this._db.query(q);
     }
 }

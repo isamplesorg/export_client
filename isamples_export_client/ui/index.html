@@ -5,13 +5,18 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&amp;display=swap" crossorigin>
 <link rel="preload" as="style" href="./_observablehq/theme-air,near-midnight.css">
+<link rel="preload" as="style" href="./_observablehq/stdlib/inputs.css">
 <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&amp;display=swap" crossorigin>
 <link rel="stylesheet" type="text/css" href="./_observablehq/theme-air,near-midnight.css">
+<link rel="stylesheet" type="text/css" href="./_observablehq/stdlib/inputs.css">
 <link rel="modulepreload" href="./_observablehq/client.js">
 <link rel="modulepreload" href="./_observablehq/runtime.js">
 <link rel="modulepreload" href="./_observablehq/stdlib.js">
 <link rel="modulepreload" href="./_npm/stac-js@0.0.9/_esm.js">
 <link rel="modulepreload" href="./_npm/markdown-it@14.1.0/_esm.js">
+<link rel="modulepreload" href="./_observablehq/stdlib/inputs.js">
+<link rel="modulepreload" href="./_npm/htl@0.3.1/_esm.js">
+<link rel="modulepreload" href="./_npm/isoformat@0.2.1/_esm.js">
 <link rel="modulepreload" href="./_npm/@radiantearth/stac-migrate@1.6.0/_esm.js">
 <link rel="modulepreload" href="./_npm/urijs@1.19.11/_esm.js">
 <link rel="modulepreload" href="./_npm/mdurl@2.0.0/_esm.js">
@@ -31,7 +36,7 @@ const [{Collection}, {default: markdownit}] = await Promise.all([import("./_npm/
 return {Collection,markdownit};
 }});
 
-define({id: "91978104", inputs: ["markdownit","Collection"], outputs: ["Markdown","md","loadCatalog","collection"], body: async (markdownit,Collection) => {
+define({id: "9ff98ad1", inputs: ["markdownit","Collection"], outputs: ["Markdown","md","loadCatalog","listDatasets","collection"], body: async (markdownit,Collection) => {
 const Markdown = new markdownit({html: true});
 
 function md(strings) {
@@ -50,9 +55,24 @@ async function loadCatalog(url) {
     return new Collection(data, url);
 }
 
+function listDatasets(source) {
+    const datasets = [];
+    for (const item of source.links) {
+        if (item.rel === "child") {
+            datasets.push({
+                "Title":item.title,
+                "Link": item.href
+            })
+        }
+    }
+    return datasets;
+}
+
 const collection = await loadCatalog("http://localhost:8000/data/stac.json");
 
-return {Markdown,md,loadCatalog,collection};
+
+
+return {Markdown,md,loadCatalog,listDatasets,collection};
 }});
 
 define({id: "0fdbb2d1", inline: true, inputs: ["collection","display"], body: async (collection,display) => {
@@ -79,8 +99,10 @@ md`${collection.description}`
 ))
 }});
 
-define({id: "e3b0c442", body: () => {
-
+define({id: "52b89531", inline: true, inputs: ["Inputs","listDatasets","collection","display"], body: async (Inputs,listDatasets,collection,display) => {
+display(await(
+Inputs.table(listDatasets(collection))
+))
 }});
 
 define({id: "36607465", inline: true, inputs: ["collection","display"], body: async (collection,display) => {
@@ -118,12 +140,13 @@ JSON.stringify(collection, null, 2)
 <main id="observablehq-main" class="observablehq">
 <h1 id="isamples-export-view" tabindex="-1"><a class="observablehq-header-anchor" href="#isamples-export-view">iSamples Export View</a></h1>
 <div id="cell-d1e06894" class="observablehq observablehq--block"></div>
-<div id="cell-91978104" class="observablehq observablehq--block"></div>
+<div id="cell-9ff98ad1" class="observablehq observablehq--block"></div>
 <p><span id="cell-0fdbb2d1"><span class="observablehq-loading"></span></span></p>
 <p><span id="cell-e9f08b27"><span class="observablehq-loading"></span></span> <span id="cell-d6898ac8"><span class="observablehq-loading"></span></span></p>
 <p><span id="cell-40cb7848"><span class="observablehq-loading"></span></span></p>
-<p>Assets:</p>
-<div id="cell-e3b0c442" class="observablehq observablehq--block"></div>
+<p>Datasets:</p>
+<p><span id="cell-52b89531"><span class="observablehq-loading"></span></span></p>
+<hr>
 <pre><span id="cell-36607465"><span class="observablehq-loading"></span></span>
 </pre></main>
 <footer id="observablehq-footer">
