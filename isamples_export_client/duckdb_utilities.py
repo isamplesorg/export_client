@@ -1,5 +1,6 @@
 import datetime
 import json
+import os.path
 from typing import Optional
 
 import duckdb
@@ -22,6 +23,7 @@ class TemporalExtent(tuple):
 
 
 def read_geo_features_from_jsonl(filename: str) -> Optional[GeoFeaturesResult]:
+    filename = os.path.abspath(filename)
     con = duckdb.connect()
     con.install_extension("spatial")
     con.load_extension("spatial")
@@ -38,6 +40,7 @@ def read_geo_features_from_jsonl(filename: str) -> Optional[GeoFeaturesResult]:
 
 
 def get_temporal_extent_from_jsonl(filename: str) -> TemporalExtent:
+    filename = os.path.abspath(filename)
     con = duckdb.connect()
     con.read_json(filename, format="newline_delimited")
     q = f"SET TimeZone='UTC'; CREATE TABLE samples AS SELECT * FROM read_json('{filename}', format='newline_delimited');"

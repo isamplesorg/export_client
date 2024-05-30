@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "export_client"
+name = "isamples_export_client"
 version = "0.1.0"
 description = "An export client for the iSamples export service."
 authors = ["Danny Mandel <danny.mandel@gmail.com>"]
