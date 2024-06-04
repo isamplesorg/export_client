@@ -5,6 +5,7 @@ import time
 from enum import Enum
 import os
 import os.path
+from pathlib import Path
 from typing import Optional, Any
 
 import requests
@@ -30,6 +31,7 @@ SOLR_INDEX_UPDATED_TIME = "indexUpdatedTime"
 SOLR_TIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
 
 STAC_COLLECTION_TYPE = "Collection"
+STAC_CATALOG_TYPE = "Catalog"
 STAC_VERSION = "1.0.0"
 STAC_DEFAULT_LICENSE = "CC-BY-4.0"  # https://spdx.org/licenses/CC-BY-4.0.html
 COLLECTION_ID = "isamples-stac-collection-"
@@ -78,6 +80,8 @@ class ExportClient:
                  jwt: str,
                  export_server_url: str,
                  format: str,
+                 collection_title: str,
+                 collection_description: Optional[str] = None,
                  refresh_date: Optional[str] = None,
                  session: Session = requests.session(),
                  sleep_time: float = 5):
@@ -97,6 +101,9 @@ class ExportClient:
         self._refresh_date = refresh_date
         self._rsession = session
         self._sleep_time = sleep_time
+        self._collection_title = collection_title
+        self._collection_description = collection_description
+
         try:
             os.makedirs(name=self._destination_directory, exist_ok=True)
         except OSError as e:
@@ -124,8 +131,12 @@ class ExportClient:
         return os.path.join(dir_path, "manifest.json")
 
     @classmethod
-    def _stac_file_path(cls, dir_path: str):
-        return os.path.join(dir_path, "stac-item.json")
+    def _stac_item_path(cls, dir_path: str):
+        return os.path.join(dir_path, "stac.json")
+
+    @classmethod
+    def _stac_catalog_path(cls, dir_path: str):
+        return os.path.join(dir_path, "stac.json")
 
     def _authentication_headers(self) -> dict:
         return {
@@ -157,24 +168,30 @@ class ExportClient:
         status_url = f"{self._export_server_url}status?uuid={uuid}"
         response = self._rsession.get(status_url, headers=self._authentication_headers())
         if _is_expected_response_code(response):
+            logging.info(response)
             return response.json()
         raise ValueError(f"Invalid response to export status: {response.json()}")
 
     def download(self, uuid: str) -> str:
         """Download the exported result set to the specified destination"""
         download_url = f"{self._export_server_url}download?uuid={uuid}"
-        with requests.get(download_url, stream=True, headers=self._authentication_headers()) as r:
+        with self._rsession.get(download_url, stream=True, headers=self._authentication_headers()) as r:
             r.raise_for_status()
             current_time = datetime.datetime.now()
             date_string = current_time.strftime("%Y_%m_%d_%H_%M_%S")
+            export_dir = os.path.join(self._destination_directory, date_string)
+            try:
+                os.makedirs(name=export_dir, exist_ok=True)
+            except OSError as e:
+                raise ValueError(f"Unable to create export directory at {export_dir}, error: {e}")
             filename = f"isamples_export_{date_string}.{self._format}"
-            local_filename = os.path.join(self._destination_directory, filename)
+            local_filename = os.path.join(export_dir, filename)
             with open(local_filename, "wb") as f:
                 for chunk in r.iter_content(chunk_size=8192):
                     f.write(chunk)
             return local_filename
 
-    def write_manifest(self, query: str, uuid: str, tstarted: datetime.datetime, num_results: int) -> str:
+    def write_manifest(self, query: str, uuid: str, tstarted: datetime.datetime, num_results: int, dir: str) -> str:
         new_manifest_dict = {
             QUERY: query,
             "uuid": uuid,
@@ -187,7 +204,7 @@ class ExportClient:
         if self._refresh_date is not None:
             # if we are refreshing, include the additional timestamp filter for verbosity's sake
             new_manifest_dict["query_with_timestamp"] = self._query_with_timestamp()
-        manifest_path = ExportClient._manifest_file_path(self._destination_directory)
+        manifest_path = ExportClient._manifest_file_path(dir)
         if os.path.exists(manifest_path):
             with open(manifest_path, "r") as file:
                 manifests = json.load(file)
@@ -198,7 +215,60 @@ class ExportClient:
             f.write(json.dumps(manifests, indent=4))
         return manifest_path
 
-    def write_stac(
+    def _gather_contained_stac_items(self, destination_directory: str) -> list[Path]:
+        start_path = Path(destination_directory)
+        return list(start_path.rglob("stac.json"))
+
+    def write_stac_catalog(self) -> str:
+        stac_catalog_path = ExportClient._stac_catalog_path(self._destination_directory)
+        catalog_filename = os.path.basename(stac_catalog_path)
+        links = [
+            {
+                "rel": "self",
+                "type": "application/json",
+                "href": catalog_filename
+            },
+            {
+                "rel": "root",
+                "type": "application/json",
+                "href": catalog_filename
+            },
+        ]
+        stac_items = self._gather_contained_stac_items(self._destination_directory)
+        for item in stac_items:
+            relative_path = os.path.relpath(item, self._destination_directory)
+            if relative_path == "stac.json":
+                continue
+            dirname = os.path.basename(os.path.dirname(item))
+            stac_item_link = {
+                "rel": "child",
+                "type": "application/json",
+                "title": dirname,
+                "href": relative_path
+            }
+            links.append(stac_item_link)
+
+        title = self._collection_title or "iSamples STAC Catalog"
+        description = self._collection_description or "STAC Catalog from iSamples Exports"
+
+        stac_catalog = {
+            "type": STAC_CATALOG_TYPE,
+            # TODO: this needs to be a UUID for the whole catalog.  Where does that come from?
+            "id": "iSamples Catalog",
+            "title": title,
+            "description": description,
+            "stac_version": STAC_VERSION,
+            # TODO: what's this?
+            "conformsTo": "conformsTo",
+            "links": links
+        }
+
+        with open(stac_catalog_path, "w", encoding="UTF-8") as f:
+            json.dump(stac_catalog, f, indent=4, ensure_ascii=False, cls=JsonDateTimeEncoder)
+
+        return stac_catalog_path
+
+    def write_stac_item(
             self,
             uuid: str,
             tstarted: datetime.datetime,
@@ -207,12 +277,14 @@ class ExportClient:
             solr_query: str,
             json_file_path: str,
             parquet_file_path: str) -> str:
+
         assets_dict = {
         }
-        description_string = (
+        description_string = self._collection_description or (
             f"iSamples Export Service results intiated at {tstarted}.  The solr query that produced this collection was  \n"
             f"```{solr_query}```.  \n"
         )
+        title_string = self._collection_title or f"{COLLECTION_TITLE} {uuid}"
         if self.is_geoparquet:
             assets_dict["data"] = {
                 "href": f"./{os.path.basename(parquet_file_path)}",
@@ -221,16 +293,23 @@ class ExportClient:
                 "roles": [
                     "data"
                 ],
-                "description": "GeoParquet representation of the collection."
+                "description": "GeoParquet representation of the collection.",
+                "alternate": {
+                    "view": {
+                        "title": "View parquet file",
+                        "href": f"/ui/ds_view.html#/data/{os.path.relpath(parquet_file_path, self._destination_directory)}"
+                    }
+                }
             }
         stac_item = {
             "stac_version": STAC_VERSION,
             "stac_extensions": [
-                "https://stac-extensions.github.io/table/v1.2.0/schema.json"
+                "https://stac-extensions.github.io/table/v1.2.0/schema.json",
+                "https://stac-extensions.github.io/alternate-assets/v1.1.0/schema.json"
             ],
             "type": STAC_COLLECTION_TYPE,
             "id": f"iSamples Export Service result {uuid}",
-            "collection": f"{COLLECTION_TITLE} {uuid}",
+            "collection": title_string,
             "license": STAC_DEFAULT_LICENSE,
             "extent": {
                 "spatial": {
@@ -334,7 +413,8 @@ class ExportClient:
             ],
             "assets": assets_dict
         }
-        stac_path = ExportClient._stac_file_path(self._destination_directory)
+        stac_directory = os.path.dirname(json_file_path)
+        stac_path = ExportClient._stac_item_path(stac_directory)
         with open(stac_path, "w", encoding="UTF-8") as f:
             json.dump(stac_item, f, indent=4, ensure_ascii=False, cls=JsonDateTimeEncoder)
         return stac_path
@@ -361,18 +441,21 @@ class ExportClient:
                     filename = self.download(uuid)
                     logging.info(f"Successfully downloaded file to {filename}")
                     num_results = sum(1 for _ in open(filename))
-                    manifest_path = self.write_manifest(self._query, uuid, tstarted, num_results)
+                    containing_directory = os.path.dirname(filename)
+                    manifest_path = self.write_manifest(self._query, uuid, tstarted, num_results, containing_directory)
                     logging.info(f"Successfully wrote manifest file to {manifest_path}")
                     geo_result = read_geo_features_from_jsonl(filename)
                     temporal_result = get_temporal_extent_from_jsonl(filename)
                     parquet_filename = None
                     if self.is_geoparquet:
                         parquet_filename = write_geoparquet_from_json_lines(filename)
-                    query_string = status_json.get("query").replace("'", "\"")
-                    solr_query_dict = json.loads(query_string)
+                    print(status_json)
+                    solr_query_dict = json.loads(status_json.get("query"))
                     query = solr_query_dict.pop("q")
-                    stac_path = self.write_stac(uuid, tstarted, geo_result, temporal_result, query, filename, parquet_filename)
+                    stac_path = self.write_stac_item(uuid, tstarted, geo_result, temporal_result, query, filename, parquet_filename)
                     logging.info(f"Successfully wrote stac item to {stac_path}")
+                    stac_catalog = self.write_stac_catalog()
+                    logging.info(f"Successfully wrote stac catalog to {stac_catalog}")
                     break
             except Exception as e:
                 logging.error("An error occurred:", e)

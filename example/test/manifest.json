@@ -1,0 +1,11 @@
+[
+    {
+        "query": "searchText:feldspar AND producedBy_resultTimeRange:[1800 TO 2024] AND -relation_target:*",
+        "uuid": "f40eecbe-7da0-416c-a6e4-3208eefd2bf1",
+        "format": "jsonl",
+        "start_time": "2024-05-20T12:44:41.259605Z",
+        "num_results": 3696,
+        "export_server_url": "https://central.isample.xyz/isamples_central/export/",
+        "is_geoparquet": true
+    }
+]

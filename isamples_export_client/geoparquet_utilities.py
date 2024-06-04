@@ -1,11 +1,11 @@
 import logging
 import os.path
 
-import pandas as pd
-import geopandas as gpd
-
 
 def write_geoparquet_from_json_lines(filename: str) -> str:
+    import pandas as pd
+    import geopandas as gpd
+
     logging.info(f"Transforming json lines file at {filename} to geoparquet")
     filename_no_extension = os.path.splitext(filename)[0]
     with open(filename, "r") as json_file:
