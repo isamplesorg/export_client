@@ -6,7 +6,7 @@ from enum import Enum
 import os
 import os.path
 from pathlib import Path
-from typing import Optional, Any, Generator
+from typing import Optional, Any
 
 import requests
 from requests import Session, Response
