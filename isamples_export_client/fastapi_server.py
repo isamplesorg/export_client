@@ -1,6 +1,5 @@
 import logging
 import os
-import time
 from typing import BinaryIO, Optional
 
 from fastapi import FastAPI, HTTPException, Request, status
@@ -13,7 +12,6 @@ from starlette.responses import FileResponse, Response, RedirectResponse
 # Byte range request code adapted from https://github.com/tiangolo/fastapi/discussions/7718
 
 app = fastapi.FastAPI()
-
 
 
 def send_bytes_range_requests(
@@ -90,7 +88,7 @@ def range_requests_response(
 
 
 class FastAPIServer:
-    def __init__(self, port: int, data_path: str, ui_path: str, browser_path:Optional[str]=None):
+    def __init__(self, port: int, data_path: str, ui_path: str, browser_path: Optional[str] = None):
         self.port = port
         self.data_path = data_path
         self.ui_path = ui_path
@@ -128,8 +126,9 @@ class FastAPIServer:
             )
         else:
             _url = f"https://radiantearth.github.io/stac-browser/#/external/http:/localhost:{self.port}/data/stac.json?.language=en"
+
             @self.app.get("/")
-            def index(request:Request):
+            def index():
                 return RedirectResponse(url=_url)
 
     def run(self):

@@ -6,7 +6,7 @@ from enum import Enum
 import os
 import os.path
 from pathlib import Path
-from typing import Optional, Any
+from typing import Optional, Any, Generator
 
 import requests
 from requests import Session, Response
@@ -81,7 +81,7 @@ class ExportClient:
                  export_server_url: str,
                  format: str,
                  collection_title: str,
-                 collection_description: str,
+                 collection_description: Optional[str] = None,
                  refresh_date: Optional[str] = None,
                  session: Session = requests.session(),
                  sleep_time: float = 5):
@@ -215,8 +215,7 @@ class ExportClient:
             f.write(json.dumps(manifests, indent=4))
         return manifest_path
 
-
-    def _gather_contained_stac_items(self, destination_directory: str) -> list[str]:
+    def _gather_contained_stac_items(self, destination_directory: str) -> list[Path]:
         start_path = Path(destination_directory)
         return list(start_path.rglob("stac.json"))
 
@@ -296,7 +295,7 @@ class ExportClient:
                 ],
                 "description": "GeoParquet representation of the collection.",
                 "alternate": {
-                    "view" : {
+                    "view": {
                         "title": "View parquet file",
                         "href": f"/ui/ds_view.html#/data/{os.path.relpath(parquet_file_path, self._destination_directory)}"
                     }
