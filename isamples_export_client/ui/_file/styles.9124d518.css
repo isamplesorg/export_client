@@ -1,6 +1,0 @@
-/* A crosshair cursor for leaflet
-e.g.: L.DomUtil.addClass(map._container,'crosshair-cursor-enabled');
-*/
-.leaflet-container.crosshair-cursor-enabled {
-    cursor:crosshair;
-}
