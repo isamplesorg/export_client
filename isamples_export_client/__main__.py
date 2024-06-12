@@ -19,7 +19,7 @@ token_option = click.option(
 )
 
 
-def getCurrentPyFolder(pyname: typing.Optional[str] = None)  -> str:
+def getCurrentPyFolder(pyname: typing.Optional[str] = None) -> str:
     '''Return folder of specified file path.
 
     By default, returns the path to this script.
@@ -32,6 +32,7 @@ def getCurrentPyFolder(pyname: typing.Optional[str] = None)  -> str:
 @click.group()
 def main():
     logging.basicConfig(format="%(levelname)s %(asctime)s %(message)s", level=logging.INFO)
+
 
 @main.command("export")
 @token_option
@@ -118,7 +119,8 @@ def refresh(jwt: str, refresh_dir: str):
     help=("The port to start the server on."),
     default=8000
 )
-def server(download_dir: str, ui_dir: str, browser_dir: str, port: int):
+
+def server(download_dir: str, ui_dir: str, browser_dir: typing.Optional[str], port: int):
     """Run a local web server to view exported data.
     """
     def openBrowser():
@@ -127,7 +129,7 @@ def server(download_dir: str, ui_dir: str, browser_dir: str, port: int):
         time.sleep(2)
         webbrowser.open(url)
 
-    if not os.path.exists(browser_dir):
+    if browser_dir is not None and not os.path.exists(browser_dir):
         browser_dir = None
     download_dir = os.path.abspath(download_dir)
     server = FastAPIServer(port, download_dir, ui_dir, browser_dir)
@@ -135,6 +137,7 @@ def server(download_dir: str, ui_dir: str, browser_dir: str, port: int):
     opener = multiprocessing.Process(target=openBrowser())
     opener.start()
     server.run()
+
 
 @main.command("login")
 @click.option(
