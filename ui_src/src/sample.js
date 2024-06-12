@@ -16,7 +16,7 @@ export class Samples {
         if (data_source_url.endsWith(".jsonl")) {
             q = `CREATE TABLE samples AS SELECT * FROM read_json_auto('${data_source_url}', format='newline_delimited')`;
         }
-        if (data_source_url.endsWith(".parquet")) {
+        if (data_source_url.includes(".parquet")) {
             q = `CREATE TABLE samples AS SELECT * FROM read_parquet('${data_source_url}')`;
         }
         try {

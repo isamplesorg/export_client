@@ -26,7 +26,7 @@ const source_entry =view(Inputs.textarea({value:default_data_source, submit:true
 return {default_data_source,source_entry};
 }});
 
-define({id: "efa45c6e", inline: true, inputs: ["source_entry","display"], body: async (source_entry,display) => {
+define({id: "efa45c6e", mode: "inline", inputs: ["source_entry","display"], body: async (source_entry,display) => {
 display(await(
 source_entry
 ))
@@ -40,17 +40,15 @@ source_entry
     <label id="observablehq-sidebar-close" for="observablehq-sidebar-toggle"></label>
     <li class="observablehq-link"><a href="./">iSamples Viewer</a></li>
   </ol>
-  <ol>
-    <section class="observablehq-section-active">
-      <summary>Viewer</summary>
-      <ol>
+  <section class="observablehq-section-active">
+    <summary>Viewer</summary>
+    <ol>
     <li class="observablehq-link"><a href="./">Index</a></li>
     <li class="observablehq-link"><a href="./ds_view.html">Dataset</a></li>
     <li class="observablehq-link"><a href="./search_isb.html">iSB PoC</a></li>
     <li class="observablehq-link observablehq-link-active"><a href="./data_source.html">Data Source</a></li>
-      </ol>
-    </section>
-  </ol>
+    </ol>
+  </section>
 </nav>
 <script>{Object.assign(document.createElement("a"),{href:""}).password&&location.replace(location.href);const e=document.querySelector("#observablehq-sidebar"),t=document.querySelector("#observablehq-sidebar-toggle"),r=sessionStorage.getItem("observablehq-sidebar");r?t.checked=r==="true":t.indeterminate=!0;for(const o of document.querySelectorAll("#observablehq-sidebar summary")){const s=o.parentElement;switch(sessionStorage.getItem(`observablehq-sidebar:${o.textContent}`)){case"true":s.open=!0;break;case"false":s.classList.contains("observablehq-section-active")||(s.open=!1);break}}addEventListener("beforeunload",()=>sessionStorage.setItem("observablehq-sidebar-scrolly",`${e.scrollTop}`));const a=sessionStorage.getItem("observablehq-sidebar-scrolly");a!=null&&(e.style.cssText="overflow: hidden;",e.scrollTop=+a,e.style.cssText="");}</script>
 <aside id="observablehq-toc" data-selector="h1:not(:first-of-type)[id], h2:first-child[id], :not(h1) + h2[id]">
@@ -59,8 +57,8 @@ source_entry
 </aside>
 <div id="observablehq-center">
 <main id="observablehq-main" class="observablehq">
-<div id="cell-8f289fc9" class="observablehq observablehq--block"></div>
-<p><span id="cell-efa45c6e"><span class="observablehq-loading"></span></span></p>
+<div class="observablehq observablehq--block"><!--:8f289fc9:--></div>
+<p><observablehq-loading></observablehq-loading><!--:efa45c6e:--></p>
 </main>
 <footer id="observablehq-footer">
 <nav><a rel="prev" href="./search_isb.html"><span>iSB PoC</span></a></nav>

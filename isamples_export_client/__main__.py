@@ -1,5 +1,3 @@
-from typing import Optional
-
 import click
 import logging
 import multiprocessing
@@ -121,9 +119,8 @@ def refresh(jwt: str, refresh_dir: str):
     help=("The port to start the server on."),
     default=8000
 )
-def server(download_dir: str, ui_dir: str, browser_dir: Optional[str], port: int):
-    """Run a local web server to view exported data.
-    """
+def server(download_dir: str, ui_dir: str, browser_dir: typing.Optional[str], port: int):
+    """Run a local web server to view exported data."""
     def openBrowser():
         url = f"http://localhost:{port}/"
         logging.info(f"Opening browser at {url}...")

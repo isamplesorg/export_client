@@ -16,7 +16,7 @@ export class Samples {
         if (data_source_url.endsWith(".jsonl")) {
             q = `CREATE TABLE samples AS SELECT * FROM read_json_auto('${data_source_url}', format='newline_delimited')`;
         }
-        if (data_source_url.endsWith(".parquet")) {
+        if (data_source_url.includes(".parquet")) {
             q = `CREATE TABLE samples AS SELECT * FROM read_parquet('${data_source_url}')`;
         }
         try {
@@ -38,6 +38,19 @@ export class Samples {
 
     async allRows(){
         const q = 'SELECT sample_identifier as pid, label, source_collection FROM samples;';
+        return this._db.query(q);
+    }
+
+    async vocabularyTermCounts() {
+        const facet_field = "has_material_category"
+        const q = `WITH mcrows AS (
+  SELECT DISTINCT unnest(${facet_field}) AS mc 
+  FROM samples
+) SELECT count(*) AS n, source_collection, mcrows.mc 
+FROM samples
+JOIN mcrows ON list_contains(${facet_field}, mcrows.mc)
+GROUP BY source_collection, mcrows.mc
+ORDER BY mcrows.mc ASC`;
         return this._db.query(q);
     }
 
