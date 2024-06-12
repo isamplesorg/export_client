@@ -127,7 +127,7 @@ class FastAPIServer:
                 name="root",
             )
         else:
-            _url = f"https://radiantearth.github.io/stac-browser/#/external/http:/localhost:{self.port}/data/stac.json?.language=en"
+            _url = f"https://radiantearth.github.io/stac-browser/#/external/http://localhost:{self.port}/data/stac.json?.language=en"
             @self.app.get("/")
             def index(request:Request):
                 return RedirectResponse(url=_url)
