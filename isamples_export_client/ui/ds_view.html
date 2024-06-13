@@ -17,14 +17,12 @@
 <link rel="modulepreload" href="./_import/sample.da41fe32.js">
 <link rel="modulepreload" href="./_npm/leaflet@1.9.4/_esm.js">
 <link rel="modulepreload" href="./_npm/leaflet.glify@3.2.0/_esm.js">
-<link rel="modulepreload" href="./_npm/leaflet-spin@1.1.2/_esm.js">
 <link rel="modulepreload" href="./_observablehq/stdlib/duckdb.js">
 <link rel="modulepreload" href="./_npm/htl@0.3.1/_esm.js">
 <link rel="modulepreload" href="./_observablehq/stdlib/inputs.js">
 <link rel="modulepreload" href="./_npm/@duckdb/duckdb-wasm@1.28.0/_esm.js">
 <link rel="modulepreload" href="./_npm/isoformat@0.2.1/_esm.js">
 <link rel="modulepreload" href="./_npm/leaflet@1.7.1/_esm.js">
-<link rel="modulepreload" href="./_npm/spin.js@2.3.2/_esm.js">
 <link rel="modulepreload" href="./_npm/apache-arrow@16.1.0/_esm.js">
 <link rel="modulepreload" href="./_npm/tslib@2.6.3/_esm.js">
 <link rel="modulepreload" href="./_npm/flatbuffers@24.3.25/_esm.js">
@@ -87,10 +85,10 @@ Inputs.table(samples.vocabularyTermCounts())
 ))
 }});
 
-define({id: "dece3b7d", outputs: ["L","glify","spin"], body: async () => {
-const [L, glify, spin] = await Promise.all([import("./_npm/leaflet@1.9.4/_esm.js"), import("./_npm/leaflet.glify@3.2.0/_esm.js"), import("./_npm/leaflet-spin@1.1.2/_esm.js")]);
+define({id: "dca6993c", outputs: ["L","glify"], body: async () => {
+const [L, glify] = await Promise.all([import("./_npm/leaflet@1.9.4/_esm.js"), import("./_npm/leaflet.glify@3.2.0/_esm.js")]);
 
-return {L,glify,spin};
+return {L,glify};
 }});
 
 define({id: "d4012631", inputs: ["display","L","html","Inputs","glify","samples","Event"], outputs: ["div","map","osm","mapLink","wholink","esri","baseMaps","layerControl","sourcemap","colormap","tableOptions","records_table","clicked_point","data_points","tooltip","glify_points","renderNewBounds"], body: (display,L,html,Inputs,glify,samples,Event) => {
@@ -232,10 +230,7 @@ records_table
   <section class="observablehq-section-active">
     <summary>Viewer</summary>
     <ol>
-    <li class="observablehq-link"><a href="./">Index</a></li>
     <li class="observablehq-link observablehq-link-active"><a href="./ds_view.html">Dataset</a></li>
-    <li class="observablehq-link"><a href="./search_isb.html">iSB PoC</a></li>
-    <li class="observablehq-link"><a href="./data_source.html">Data Source</a></li>
     </ol>
   </section>
 </nav>
@@ -253,7 +248,7 @@ records_table
 <p>The dataset resource contains <observablehq-loading></observablehq-loading><!--:77e5fa2a:--> records.</p>
 <p>Material type:</p>
 <p><observablehq-loading></observablehq-loading><!--:2764359f:--></p>
-<div class="observablehq observablehq--block"><!--:dece3b7d:--></div>
+<div class="observablehq observablehq--block"><!--:dca6993c:--></div>
 <div class="observablehq observablehq--block"><!--:d4012631:--></div>
 <p><observablehq-loading></observablehq-loading><!--:d7fc1347:--></p>
 <p>Selected:</p>
@@ -262,7 +257,7 @@ records_table
 </div>
 </main>
 <footer id="observablehq-footer">
-<nav><a rel="prev" href="./"><span>iSamples Viewer</span></a><a rel="next" href="./search_isb.html"><span>iSB PoC</span></a></nav>
+<nav><a rel="prev" href="./"><span>iSamples Viewer</span></a></nav>
 <div>iSamples export viewer.</div>
 </footer>
 </div>
