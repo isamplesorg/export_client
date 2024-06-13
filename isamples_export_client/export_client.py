@@ -14,8 +14,9 @@ from requests import Session, Response
 from isamples_export_client.duckdb_utilities import (
     GeoFeaturesResult,
     TemporalExtent,
-    read_geo_features_from_jsonl,
-    get_temporal_extent_from_jsonl
+    load_db_from_jsonl,
+    read_geo_features,
+    get_temporal_extent
 )
 from isamples_export_client.geoparquet_utilities import write_geoparquet_from_json_lines
 
@@ -444,8 +445,9 @@ class ExportClient:
                     containing_directory = os.path.dirname(filename)
                     manifest_path = self.write_manifest(self._query, uuid, tstarted, num_results, containing_directory)
                     logging.info(f"Successfully wrote manifest file to {manifest_path}")
-                    geo_result = read_geo_features_from_jsonl(filename)
-                    temporal_result = get_temporal_extent_from_jsonl(filename)
+                    con = load_db_from_jsonl(filename)
+                    geo_result = read_geo_features(con)
+                    temporal_result = get_temporal_extent(con)
                     parquet_filename = None
                     if self.is_geoparquet:
                         parquet_filename = write_geoparquet_from_json_lines(filename)
