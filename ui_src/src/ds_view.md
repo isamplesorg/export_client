@@ -51,7 +51,6 @@ ${Inputs.table(samples.vocabularyTermCounts())}
 ```js
 import * as L from "npm:leaflet";
 import * as glify from "npm:leaflet.glify";
-import * as spin from "npm:leaflet-spin";
 ```
 
 ```js
