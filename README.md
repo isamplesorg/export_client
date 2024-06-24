@@ -75,7 +75,7 @@ Usage: isample export [OPTIONS]
   Export records from iSamples to a local copy.
 
 Options:
-  -t, --jwt TEXT                  The JWT for the authenticated user.
+  -j, --jwt TEXT                  The JWT for the authenticated user.
                                   [required]
   -u, --url TEXT                  The URL to the iSamples export service.
   -q, --query TEXT                The solr query to execute.  [required]
@@ -84,26 +84,23 @@ Options:
                                   [required]
   -f, --format [jsonl|csv|geoparquet]
                                   The format of the exported content.
+  -t, --title TEXT                Human readable title for the generated STAC
+                                  collection, if not specified one will be
+                                  generated.
+  -r, --description TEXT          Human readable description for the generated
+                                  STAC collection, if not specified one will
+                                  be generated.
   --help                          Show this message and exit.
 ```
 
-The `export` command initiates retrieval of a subset of content from the iSamples central 
+The `isample export` command initiates retrieval of a subset of content from the iSamples central 
 aggregation of physical specimen records. The subset of records is determined by a query which 
 is expressed in Lucene or Solr query syntax. The query may be manually crafted or retrieved
 from the iSamples web UI by navigating to the subset of interest and clicking on the `Export`.
 
-```
-Usage: export_client_cli.py [OPTIONS]
+For example, the following command initiates the retrieval of all the Smithsonian records in 
+`geoparquet` format for the destination directory `/tmp`, using the JWT token in the `TOKEN` environment variable.
 
-Options:
-  -q, --query TEXT          The solr query to execute.
-  -d, --destination TEXT    The destination directory where the downloaded
-                            content should be written.
-  -r, --refresh-dir TEXT    If specified, will read the manifest.json out of
-                            an existing directory and re-execute the query to
-                            update results.
-  -t, --jwt TEXT            The JWT for the authenticated user.
-  -u, --url TEXT            The URL to the iSamples export service.
-  -f, --format [jsonl|csv]  The format of the exported content.
-  --help                    Show this message and exit.
-  ```
+```
+isample export -j $TOKEN -f geoparquet -d /tmp -q 'source:SMITHSONIAN'
+```
