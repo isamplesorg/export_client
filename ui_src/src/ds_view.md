@@ -1,8 +1,9 @@
 <link rel="stylesheet" href="styles.css">
-
+<link rel="stylesheet" href="npm:leaflet/dist/leaflet.css">
 # View Dataset
 
 ```js
+import * as duckdb from "npm:@duckdb/duckdb-wasm";
 let default_data_source = "http://localhost:8000/data/test/isamples_export_geo.parquet";
 if (location.hash) {
     default_data_source = new URL(document.location.hash.substring(1), location).href;
@@ -51,7 +52,6 @@ ${Inputs.table(samples.vocabularyTermCounts())}
 ```js
 import * as L from "npm:leaflet";
 import * as glify from "npm:leaflet.glify";
-import * as spin from "npm:leaflet-spin";
 ```
 
 ```js

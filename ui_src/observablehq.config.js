@@ -10,10 +10,7 @@ export default {
     {
       name: "Viewer",
       pages: [
-        {name: "Index", path: "/index"},
         {name: "Dataset", path: "/ds_view"},
-        {name: "iSB PoC", path: "/search_isb"},
-        {name: "Data Source", path: "/data_source"}
       ]
     }
   ],

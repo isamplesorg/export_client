@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<title>View Dataset | iSamples Viewer</title>
+<title>iSamples Viewer</title>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&amp;display=swap" crossorigin>
 <link rel="preload" as="style" href="./_observablehq/theme-air,near-midnight.css">
@@ -14,18 +14,16 @@
 <link rel="modulepreload" href="./_observablehq/client.js">
 <link rel="modulepreload" href="./_observablehq/runtime.js">
 <link rel="modulepreload" href="./_observablehq/stdlib.js">
+<link rel="modulepreload" href="./_npm/@duckdb/duckdb-wasm@1.28.0/_esm.js">
 <link rel="modulepreload" href="./_import/sample.da41fe32.js">
 <link rel="modulepreload" href="./_npm/leaflet@1.9.4/_esm.js">
 <link rel="modulepreload" href="./_npm/leaflet.glify@3.2.0/_esm.js">
-<link rel="modulepreload" href="./_npm/leaflet-spin@1.1.2/_esm.js">
 <link rel="modulepreload" href="./_observablehq/stdlib/duckdb.js">
 <link rel="modulepreload" href="./_npm/htl@0.3.1/_esm.js">
 <link rel="modulepreload" href="./_observablehq/stdlib/inputs.js">
-<link rel="modulepreload" href="./_npm/@duckdb/duckdb-wasm@1.28.0/_esm.js">
 <link rel="modulepreload" href="./_npm/isoformat@0.2.1/_esm.js">
-<link rel="modulepreload" href="./_npm/leaflet@1.7.1/_esm.js">
-<link rel="modulepreload" href="./_npm/spin.js@2.3.2/_esm.js">
 <link rel="modulepreload" href="./_npm/apache-arrow@16.1.0/_esm.js">
+<link rel="modulepreload" href="./_npm/leaflet@1.7.1/_esm.js">
 <link rel="modulepreload" href="./_npm/tslib@2.6.3/_esm.js">
 <link rel="modulepreload" href="./_npm/flatbuffers@24.3.25/_esm.js">
 <link rel="icon" href="./_file/observable.1af93621.png" type="image/png" sizes="32x32">
@@ -33,13 +31,14 @@
 
 import {define} from "./_observablehq/client.js";
 
-define({id: "d626992b", inputs: ["location","view","Inputs"], outputs: ["default_data_source","source_url"], body: (location,view,Inputs) => {
+define({id: "bec5a924", inputs: ["location","view","Inputs"], outputs: ["duckdb","default_data_source","source_url"], body: async (location,view,Inputs) => {
+const duckdb = await import("./_npm/@duckdb/duckdb-wasm@1.28.0/_esm.js");
 let default_data_source = "http://localhost:8000/data/test/isamples_export_geo.parquet";
 if (location.hash) {
     default_data_source = new URL(document.location.hash.substring(1), location).href;
 }
 const source_url = view(Inputs.textarea({value:default_data_source, submit:true}));
-return {default_data_source,source_url};
+return {duckdb,default_data_source,source_url};
 }});
 
 define({id: "f0629a64", inputs: ["display","html","DuckDBClient","source_url"], outputs: ["sourceErrorMessage","Samples","db","samples"], body: async (display,html,DuckDBClient,source_url) => {
@@ -87,10 +86,10 @@ Inputs.table(samples.vocabularyTermCounts())
 ))
 }});
 
-define({id: "dece3b7d", outputs: ["L","glify","spin"], body: async () => {
-const [L, glify, spin] = await Promise.all([import("./_npm/leaflet@1.9.4/_esm.js"), import("./_npm/leaflet.glify@3.2.0/_esm.js"), import("./_npm/leaflet-spin@1.1.2/_esm.js")]);
+define({id: "dca6993c", outputs: ["L","glify"], body: async () => {
+const [L, glify] = await Promise.all([import("./_npm/leaflet@1.9.4/_esm.js"), import("./_npm/leaflet.glify@3.2.0/_esm.js")]);
 
-return {L,glify,spin};
+return {L,glify};
 }});
 
 define({id: "d4012631", inputs: ["display","L","html","Inputs","glify","samples","Event"], outputs: ["div","map","osm","mapLink","wholink","esri","baseMaps","layerControl","sourcemap","colormap","tableOptions","records_table","clicked_point","data_points","tooltip","glify_points","renderNewBounds"], body: (display,L,html,Inputs,glify,samples,Event) => {
@@ -232,10 +231,7 @@ records_table
   <section class="observablehq-section-active">
     <summary>Viewer</summary>
     <ol>
-    <li class="observablehq-link"><a href="./">Index</a></li>
     <li class="observablehq-link observablehq-link-active"><a href="./ds_view.html">Dataset</a></li>
-    <li class="observablehq-link"><a href="./search_isb.html">iSB PoC</a></li>
-    <li class="observablehq-link"><a href="./data_source.html">Data Source</a></li>
     </ol>
   </section>
 </nav>
@@ -247,13 +243,14 @@ records_table
 <div id="observablehq-center">
 <main id="observablehq-main" class="observablehq">
 <link rel="stylesheet" href="./_file/styles.9124d518.css">
-<h1 id="view-dataset" tabindex="-1"><a class="observablehq-header-anchor" href="#view-dataset">View Dataset</a></h1>
-<div class="observablehq observablehq--block"><!--:d626992b:--></div>
+<link rel="stylesheet" href="./_npm/leaflet@1.9.4/dist/leaflet.css">
+# View Dataset
+<div class="observablehq observablehq--block"><!--:bec5a924:--></div>
 <div class="observablehq observablehq--block"><!--:f0629a64:--></div>
 <p>The dataset resource contains <observablehq-loading></observablehq-loading><!--:77e5fa2a:--> records.</p>
 <p>Material type:</p>
 <p><observablehq-loading></observablehq-loading><!--:2764359f:--></p>
-<div class="observablehq observablehq--block"><!--:dece3b7d:--></div>
+<div class="observablehq observablehq--block"><!--:dca6993c:--></div>
 <div class="observablehq observablehq--block"><!--:d4012631:--></div>
 <p><observablehq-loading></observablehq-loading><!--:d7fc1347:--></p>
 <p>Selected:</p>
@@ -262,7 +259,7 @@ records_table
 </div>
 </main>
 <footer id="observablehq-footer">
-<nav><a rel="prev" href="./"><span>iSamples Viewer</span></a><a rel="next" href="./search_isb.html"><span>iSB PoC</span></a></nav>
+<nav><a rel="prev" href="./"><span>iSamples Viewer</span></a></nav>
 <div>iSamples export viewer.</div>
 </footer>
 </div>
