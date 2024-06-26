@@ -5,7 +5,7 @@ from typing import Optional
 
 import duckdb
 
-#Specifies the schema of the samples database created when loading the JSON
+# Specifies the schema of the samples database created when loading the JSON
 SOURCE_COLUMNS = '''{
 sample_identifier: 'VARCHAR',
 "label": 'VARCHAR',
@@ -16,30 +16,31 @@ has_context_category: 'STRUCT("label" VARCHAR)[]',
 informal_classification: 'VARCHAR[]',
 keywords: 'STRUCT(keyword VARCHAR)[]',
 produced_by: 'STRUCT(
-    identifier VARCHAR, 
-    "label" VARCHAR, 
-    description VARCHAR, 
-    result_time DATE, 
+    identifier VARCHAR,
+    "label" VARCHAR,
+    description VARCHAR,
+    result_time DATE,
     sampling_site STRUCT(
-        description VARCHAR, 
-        "label" VARCHAR, 
-        place_name VARCHAR[], 
+        description VARCHAR,
+        "label" VARCHAR,
+        place_name VARCHAR[],
         sample_location STRUCT(
-            elevation DOUBLE, 
-            latitude DOUBLE, 
+            elevation DOUBLE,
+            latitude DOUBLE,
             longitude DOUBLE
         )
-    ), 
+    ),
     responsibility STRUCT("role" VARCHAR, "name" VARCHAR)[]
 )',
 registrant: 'STRUCT("name" VARCHAR)',
 curation: 'STRUCT(
-    "label" VARCHAR, 
-    description VARCHAR, 
-    curation_location VARCHAR, 
+    "label" VARCHAR,
+    description VARCHAR,
+    curation_location VARCHAR,
     access_constraints VARCHAR[]
 )'
 }'''
+
 
 class GeoFeaturesResult:
     def __init__(self, bbox: dict, geo_json: str):
@@ -79,7 +80,7 @@ def get_temporal_extent(con) -> TemporalExtent:
     return TemporalExtent(None, None)
 
 
-def load_db_from_jsonl(filename: str, dbcnstr:Optional[str] = None) -> duckdb.DuckDBPyConnection:
+def load_db_from_jsonl(filename: str, dbcnstr: Optional[str] = None) -> duckdb.DuckDBPyConnection:
     """
     Load the geojson file into the "samples" table in the database specified by dbcnstr.
     Default is to load in a memory database.
