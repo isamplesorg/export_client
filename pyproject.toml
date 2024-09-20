@@ -20,7 +20,7 @@ geopandas = "^0.14.4"
 geoarrow-pyarrow = "^0.1.2"
 geoarrow-pandas = "^0.1.1"
 stac-validator = "^3.3.2"
-fastapi = "^0.111.0"
+fastapi = "^0.104.0"
 
 [tool.poetry_bumpversion.file."isamples_export_client/__init__.py"]
 
