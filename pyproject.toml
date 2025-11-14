@@ -20,6 +20,10 @@ geoarrow-pyarrow = "^0.1.2"
 geoarrow-pandas = "^0.1.1"
 stac-validator = "^3.3.2"
 fastapi = "^0.111.0"
+pqg = {version = "^0.1.0", optional = true}
+
+[tool.poetry.extras]
+pqg = ["pqg"]
 
 [tool.poetry_bumpversion.file."isamples_export_client/__init__.py"]
 

@@ -7,6 +7,7 @@ import typing
 import webbrowser
 from isamples_export_client.export_client import ExportClient
 from isamples_export_client.fastapi_server import FastAPIServer
+from isamples_export_client.pqg_converter import convert_isamples_to_pqg
 
 
 token_option = click.option(
@@ -152,6 +153,63 @@ def do_login(url: str):
     print("Opening for login. When complete, copy the JWT for use with this export client.")
     print('For example: export JWT="$(pbpaste)"')
     webbrowser.open(target)
+
+
+@main.command("convert-to-pqg")
+@click.option(
+    "-i",
+    "--input",
+    "input_file",
+    help="Path to input GeoParquet file",
+    required=True,
+    type=click.Path(exists=True)
+)
+@click.option(
+    "-o",
+    "--output",
+    "output_file",
+    help="Path to output PQG Parquet file",
+    required=True,
+    type=click.Path()
+)
+@click.option(
+    "-d",
+    "--db-path",
+    help="Path to DuckDB database file (default: in-memory)",
+    default=":memory:"
+)
+def convert_to_pqg(input_file: str, output_file: str, db_path: str):
+    """Convert an iSamples GeoParquet export to PQG format.
+
+    This command converts the nested iSamples data structure into PQG's
+    property graph format, decomposing nested objects into separate nodes
+    and creating edges to represent relationships.
+
+    Example:
+        isample convert-to-pqg -i data.parquet -o data_pqg.parquet
+    """
+    logging.info(f"Converting {input_file} to PQG format")
+    logging.info(f"Output will be written to {output_file}")
+
+    try:
+        stats = convert_isamples_to_pqg(input_file, output_file, db_path)
+
+        logging.info("Conversion completed successfully!")
+        logging.info("\nGraph Statistics:")
+        logging.info("\nNodes by type:")
+        for otype, count in stats.get('nodes_by_type', {}).items():
+            logging.info(f"  {otype}: {count}")
+
+        logging.info("\nEdges by type:")
+        for pred, count in stats.get('edges_by_type', {}).items():
+            logging.info(f"  {pred}: {count}")
+
+    except ImportError as e:
+        logging.error("PQG library not installed. Install with: pip install pqg")
+        raise click.ClickException("PQG library required but not installed")
+    except Exception as e:
+        logging.error(f"Conversion failed: {e}")
+        raise
 
 
 if __name__ == "__main__":

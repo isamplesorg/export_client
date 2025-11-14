@@ -104,3 +104,143 @@ For example, the following command initiates the retrieval of all the Smithsonia
 ```
 isample export -j $TOKEN -f geoparquet -d /tmp -q 'source:SMITHSONIAN'
 ```
+
+## convert-to-pqg
+
+```
+Usage: isample convert-to-pqg [OPTIONS]
+
+  Convert an iSamples GeoParquet export to PQG format.
+
+  This command converts the nested iSamples data structure into PQG's
+  property graph format, decomposing nested objects into separate nodes and
+  creating edges to represent relationships.
+
+Options:
+  -i, --input PATH   Path to input GeoParquet file  [required]
+  -o, --output PATH  Path to output PQG Parquet file  [required]
+  -d, --db-path TEXT Path to DuckDB database file (default: in-memory)
+  --help             Show this message and exit.
+```
+
+### What is PQG?
+
+[PQG](https://github.com/isamplesorg/pqg) (Property Graph in DuckDB) is a Python library for constructing and querying property graphs using DuckDB as the backend. It provides a middle ground between full-featured graph databases and traditional relational databases.
+
+### Installation with PQG Support
+
+To use the PQG conversion feature, install the export client with PQG support:
+
+```bash
+# Using pipx
+pipx install "git+https://github.com/isamplesorg/export_client.git[pqg]"
+
+# Or using poetry
+poetry install --extras pqg
+
+# Or install pqg separately
+pip install pqg
+```
+
+### How the Conversion Works
+
+The converter transforms the nested iSamples data structure into a property graph by:
+
+1. **Creating nodes** for each distinct entity:
+   - Sample (main entity)
+   - SamplingEvent (from `produced_by`)
+   - SamplingSite (from `produced_by.sampling_site`)
+   - Location (from geographic coordinates)
+   - Category (from `has_*_category` fields)
+   - Curation (from `curation`)
+   - Agent (from `registrant` and `responsibility`)
+
+2. **Creating edges** to represent relationships:
+   - Sample → SamplingEvent (produced_by)
+   - SamplingEvent → SamplingSite (sampling_site)
+   - SamplingSite → Location (sample_location)
+   - Sample → Category (has_specimen_category, has_material_category, has_context_category)
+   - Sample → Curation (curation)
+   - Sample → Agent (registrant)
+
+3. **Preserving properties**: All relevant fields from the original data are preserved as node properties.
+
+### Example Usage
+
+Convert a GeoParquet export to PQG format:
+
+```bash
+# First, export data in geoparquet format
+isample export -j $TOKEN -f geoparquet -d /tmp -q 'source:SMITHSONIAN'
+
+# Then convert to PQG format
+isample convert-to-pqg \
+  -i /tmp/isamples_export_2025_04_21_16_23_46_geo.parquet \
+  -o /tmp/isamples_pqg.parquet
+
+# Optional: specify a persistent database file
+isample convert-to-pqg \
+  -i /tmp/isamples_export_2025_04_21_16_23_46_geo.parquet \
+  -o /tmp/isamples_pqg.parquet \
+  -d /tmp/isamples.duckdb
+```
+
+The conversion process will:
+- Read the GeoParquet file
+- Decompose nested structures into nodes and edges
+- Create a PQG-compatible Parquet file
+- Display statistics about the created graph (node counts by type, edge counts by predicate)
+
+### Using the PQG Output
+
+Once converted, you can use the PQG Python library to query and analyze the graph:
+
+```python
+from pqg import Graph
+
+# Load the converted data
+graph = Graph("isamples.duckdb")
+graph.loadMetadata("isamples_pqg.parquet")
+
+# Query samples
+samples = graph.getNodesByType("Sample")
+
+# Traverse relationships
+for sample in samples[:10]:
+    # Get the sampling event
+    events = graph.getRelations(sample.pid, "produced_by")
+    if events:
+        event = graph.getNode(events[0])
+        print(f"Sample {sample.label} was produced by {event.label}")
+```
+
+For more information about working with PQG, see the [PQG documentation](https://github.com/isamplesorg/pqg).
+
+### Schema Mapping Reference
+
+The converter provides **lossless conversion** - all iSamples fields are preserved in PQG:
+
+| iSamples Field | PQG Mapping | Notes |
+|---|---|---|
+| sample_identifier | Sample (pid) | Used as the unique identifier |
+| label | Sample (label) | Human-readable name |
+| description | Sample (description) | Extended description |
+| alternate_identifiers | Sample (altids) | Uses PQG's built-in altids field |
+| produced_by | SamplingEvent node | Connected via produced_by edge |
+| sampling_purpose | Sample property | Why sample was collected |
+| produced_by.sampling_site | SamplingSite node | Nested decomposition |
+| sampling_site.sample_location | Location node | Geographic coordinates (lat/lon/elevation) |
+| has_specimen_category | Category nodes | Multiple edges created |
+| has_material_category | Category nodes | Multiple edges created |
+| has_context_category | Category nodes | Multiple edges created |
+| keywords | Sample property | Stored as array |
+| related_resource | RelatedResource nodes | Separate nodes with typed edges |
+| complies_with | Sample property | Standards followed (array) |
+| dc_rights | Sample property | Rights statement |
+| curation | Curation node | Connected via curation edge |
+| registrant | Agent node | Connected via registrant edge |
+| informal_classification | Sample property | Stored as array |
+| geometry | Sample property | Stored as WKT in geometry_wkt |
+| source_collection | Named graph (n) | Used for organizational grouping |
+
+**Note**: The converter creates 8 node types (Sample, SamplingEvent, SamplingSite, Location, Category, Curation, Agent, RelatedResource) and preserves all relationships through typed edges. All data from the GeoParquet export is preserved.
